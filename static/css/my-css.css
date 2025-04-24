@@ -1,0 +1,263 @@
+/* 自定义样式 */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+}
+
+.my-nav {
+    background-color: #1a1a1a;
+    color: white;
+    padding: 10px 20px;
+}
+
+#logo a {
+    color: #e50914;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#sub-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+#sub-navigation ul {
+    list-style: none;
+    display: flex;
+    padding: 0;
+    margin: 0;
+}
+
+#sub-navigation ul li {
+    margin-right: 20px;
+}
+
+#sub-navigation ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+#sub-navigation ul li a:hover {
+    color: #e50914;
+}
+
+#search {
+    display: flex;
+    align-items: center;
+}
+
+#search label {
+    margin-right: 10px;
+    color: white;
+}
+
+#search-field {
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+}
+
+.ml4-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.frontpage-section {
+    margin-bottom: 30px;
+}
+
+.frontpage-section-header {
+    margin-bottom: 10px;
+}
+
+.collection-label {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.collection-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.movie-card {
+    width: 200px;
+    background-color: white;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.movie-card:hover {
+    transform: translateY(-5px);
+}
+
+.movie-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.poster-wrapper {
+    height: 300px;
+    overflow: hidden;
+}
+
+.poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.movie-meta {
+    padding: 10px;
+}
+
+.title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.rating {
+    color: #e50914;
+    margin-bottom: 5px;
+}
+
+.genres {
+    font-size: 12px;
+    color: #666;
+}
+
+/* 电影详情页样式 */
+.movie-details {
+    display: flex;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.movie-poster-col {
+    flex: 0 0 300px;
+    margin-right: 20px;
+}
+
+.detail-poster {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.movie-info-col {
+    flex: 1;
+}
+
+.detail-title {
+    margin-top: 0;
+    color: #333;
+}
+
+.detail-rating, .detail-genres, .detail-rating-count {
+    margin-bottom: 10px;
+}
+
+.top-ratings-section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ratings-list {
+    margin-top: 10px;
+}
+
+.rating-item {
+    margin-bottom: 5px;
+}
+
+.rating-item a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.rating-item a:hover {
+    text-decoration: underline;
+}
+
+/* 用户信息页样式 */
+.user-info {
+    display: flex;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.user-avatar {
+    flex: 0 0 100px;
+    margin-right: 20px;
+}
+
+.avatar-img {
+    width: 100%;
+    height: auto;
+    border-radius: 50%;
+}
+
+.user-details {
+    flex: 1;
+}
+
+.user-title {
+    margin-top: 0;
+    color: #333;
+}
+
+.user-avg-rating, .user-rating-range, .user-rating-count {
+    margin-bottom: 10px;
+}
+
+.ratings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.ratings-table th, .ratings-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.ratings-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.ratings-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+.ratings-table a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.ratings-table a:hover {
+    text-decoration: underline;
+} 

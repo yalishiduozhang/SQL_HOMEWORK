@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>Movie | Movie Hunter</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link type="text/plain" rel="author"/>
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='css/my-css.css') }}" rel="stylesheet"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/recsys.js') }}"></script>
+</head>
+<body id="root">
+<div>
+    <div class="my-nav">
+        <h1 id="logo"><a href="/">Movie Hunter</a></h1>
+        <div id="navigation">
+        </div>
+        <div id="sub-navigation">
+            <ul>
+                <li><a href="/">HOME</a></li>
+                <li><a href="#">LATEST TRAILERS</a></li>
+                <li><a href="#">TOP RATED</a></li>
+                <li><a href="#">MOST COMMENTED</a></li>
+            </ul>
+            <div id="search">
+                <label for="search-field">SEARCH</label>
+                <input type="text" name="search field" placeholder="Enter search here" id="search-field" title="Enter search here" class="blink search-field"  />
+            </div>
+        </div>
+    </div>
+    <div class="ml4-container" style="min-height: 920px;">
+        <div id="main-container">
+            <div class="frontpage" id="moviePage">
+                <div id="moviePanel" class="frontpage-section-top">
+                </div>
+            </div>
+            <div class="frontpage" id="recPage">
+                <div class="frontpage-section-top">
+                    <div class="label collection-label">SIMILAR MOVIES</div>
+                </div>
+                <div id="similarMovies" class="collection-panel">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+<script type="text/javascript">
+var baseUrl = window.location.protocol + "//" + window.location.host + "/";
+var movieId = getUrlParameter('id');
+var model = getUrlParameter('model');
+
+$.getJSON(baseUrl + 'getmovie?id=' + movieId, function (data) {
+    showMovieDetails(data, '#moviePanel');
+});
+
+$.getJSON(baseUrl + 'getsimilarmovie?movieId=' + movieId + '&size=12&model=' + model, function (data) {
+    showMovies(data, '#similarMovies');
+});
+</script>
+</html> 
