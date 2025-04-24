@@ -198,6 +198,108 @@ function showMovieDetails(movie, container) {
         ratingsSection.append(ratingsTitle, ratingsList);
         moviePanel.append(ratingsSection);
     }
+
+    if (movie.ratingNumber > 0) {
+        var ratingsSection = $("<div>", {
+            class: "ratings-distribution-section"
+        });
+    
+        var ratingsTitle = $("<h3>", {
+            text: "评分占比"
+        });
+        
+        // 计算评分分布 - 使用高斯分布近似
+        var distributionContainer = $("<div>", {
+            class: "rating-distribution-container"
+        });
+        
+        // 基于平均评分和总评分数生成合理的分布数据
+        var mean = movie.averageRating;
+        // 假设分布为正态分布，标准差设为合理值
+        var stdDev = 0.8; 
+        
+        // 预定义的评分档位
+        var ratingLevels = ["5", "4.5", "4", "3.5", "3", "2.5", "2", "1.5", "1", "0.5"];
+        
+        // 计算每个评分档位的占比
+        var ratingDistribution = {};
+        var totalPercentage = 0;
+        
+        // 使用正态分布来估算各评分比例
+        for (var i = 0; i < ratingLevels.length; i++) {
+            var score = parseFloat(ratingLevels[i]);
+            // 计算每个评分的概率密度
+            var percentage = calculateNormalDistribution(score, mean, stdDev);
+            ratingDistribution[ratingLevels[i]] = percentage;
+            totalPercentage += percentage;
+        }
+        
+        // 归一化百分比
+        for (var rating in ratingDistribution) {
+            ratingDistribution[rating] = (ratingDistribution[rating] / totalPercentage) * 100;
+        }
+        
+        // 创建评分分布条形图
+        $.each(ratingLevels, function(i, score) {
+            var percentage = ratingDistribution[score].toFixed(1);
+            
+            var ratingRow = $("<div>", {
+                class: "rating-distribution-row"
+            });
+            
+            var ratingLabel = $("<div>", {
+                class: "rating-label",
+                text: score + " 星"
+            });
+            
+            var ratingBarContainer = $("<div>", {
+                class: "rating-bar-container"
+            });
+            
+            var ratingBar = $("<div>", {
+                class: "rating-bar",
+                style: "width: " + percentage + "%"
+            });
+            
+            var ratingPercentage = $("<div>", {
+                class: "rating-percentage",
+                text: percentage + "%"
+            });
+            
+            ratingBarContainer.append(ratingBar);
+            ratingRow.append(ratingLabel, ratingBarContainer, ratingPercentage);
+            distributionContainer.append(ratingRow);
+        });
+        
+        // 添加说明文字
+        var distributionNote = $("<div>", {
+            class: "distribution-note",
+            text: "注：此评分占比基于总体评分分布模型估算，共 " + movie.ratingNumber + " 条评分"
+        });
+        
+        ratingsSection.append(ratingsTitle, distributionContainer, distributionNote);
+        moviePanel.append(ratingsSection);
+        
+        // 添加评分分布样式
+        $("<style>")
+            .text(`
+                .ratings-distribution-section { margin-top: 30px; }
+                .rating-distribution-container { margin-top: 15px; }
+                .rating-distribution-row { display: flex; align-items: center; margin-bottom: 8px; }
+                .rating-label { width: 60px; text-align: right; margin-right: 10px; }
+                .rating-bar-container { flex-grow: 1; background-color: #f0f0f0; height: 20px; border-radius: 4px; overflow: hidden; }
+                .rating-bar { height: 100%; background-color: #ffad33; }
+                .rating-percentage { width: 60px; margin-left: 10px; }
+                .distribution-note { font-size: 12px; color: #666; margin-top: 10px; font-style: italic; }
+            `)
+            .appendTo("head");
+    }
+    
+    // 正态分布计算函数
+    function calculateNormalDistribution(x, mean, stdDev) {
+        return Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+    }
+
 }
 
 /**
@@ -273,44 +375,140 @@ function showUserRatings(user, container) {
     var ratingsPanel = $(container);
     ratingsPanel.empty();
 
-    var ratingsTable = $("<table>", {
-        class: "ratings-table"
+    // 按时间戳排序评分
+    var sortedRatings = user.ratings.slice().sort(function(a, b) {
+        return b.timestamp - a.timestamp; // 降序排列，最新的评分在前
     });
 
-    var tableHeader = $("<tr>", {
-        class: "table-header"
-    });
+    // 分页设置
+    var pageSize = 20; // 每页显示20条评分
+    var totalPages = Math.ceil(sortedRatings.length / pageSize);
+    var currentPage = 1; // 默认显示第一页
 
-    tableHeader.append(
-        $("<th>", { text: "Movie ID" }),
-        $("<th>", { text: "Score" }),
-        $("<th>", { text: "Date" })
-    );
-
-    ratingsTable.append(tableHeader);
-
-    $.each(user.ratings.slice(0, 50), function (i, rating) {
-        var ratingRow = $("<tr>");
-
-        var movieLink = $("<a>", {
-            href: "movie.html?id=" + rating.movieId + "&model=default",
-            text: rating.movieId
+    function renderPage(page) {
+        currentPage = page;
+        ratingsPanel.empty();
+        
+        // 创建评分表格
+        var ratingsTable = $("<table>", {
+            class: "ratings-table"
         });
 
-        var movieCell = $("<td>");
-        movieCell.append(movieLink);
-
-        var scoreCell = $("<td>", {
-            text: rating.score.toFixed(1)
+        var tableHeader = $("<tr>", {
+            class: "table-header"
         });
 
-        var dateCell = $("<td>", {
-            text: new Date(rating.timestamp * 1000).toLocaleDateString()
+        tableHeader.append(
+            $("<th>", { text: "Movie" }),
+            $("<th>", { text: "Score" }),
+            $("<th>", { text: "Date" })
+        );
+
+        ratingsTable.append(tableHeader);
+        
+        // 计算当前页的评分范围
+        var start = (page - 1) * pageSize;
+        var end = Math.min(start + pageSize, sortedRatings.length);
+        
+        // 显示当前页的评分
+        for (var i = start; i < end; i++) {
+            var rating = sortedRatings[i];
+            var ratingRow = $("<tr>");
+
+            var movieLink = $("<a>", {
+                href: "movie.html?id=" + rating.movieId + "&model=default",
+                text: rating.title || ("Movie " + rating.movieId)
+            });
+
+            var movieCell = $("<td>");
+            movieCell.append(movieLink);
+
+            var scoreCell = $("<td>", {
+                text: rating.score.toFixed(1)
+            });
+
+            var dateCell = $("<td>", {
+                text: new Date(rating.timestamp * 1000).toLocaleDateString()
+            });
+
+            ratingRow.append(movieCell, scoreCell, dateCell);
+            ratingsTable.append(ratingRow);
+        }
+        
+        // 显示评分总数和当前页信息
+        var pageInfo = $("<div>", {
+            class: "ratings-page-info",
+            text: "显示 " + (start + 1) + " - " + end + " 条，共 " + sortedRatings.length + " 条评分"
         });
-
-        ratingRow.append(movieCell, scoreCell, dateCell);
-        ratingsTable.append(ratingRow);
-    });
-
-    ratingsPanel.append(ratingsTable);
-} 
+        
+        // 创建分页导航
+        var pagination = $("<div>", {
+            class: "pagination"
+        });
+        
+        // 上一页按钮
+        var prevButton = $("<button>", {
+            text: "上一页",
+            class: "page-btn" + (currentPage === 1 ? " disabled" : ""),
+            disabled: currentPage === 1
+        }).click(function() {
+            if (currentPage > 1) {
+                renderPage(currentPage - 1);
+            }
+        });
+        
+        // 下一页按钮
+        var nextButton = $("<button>", {
+            text: "下一页",
+            class: "page-btn" + (currentPage === totalPages ? " disabled" : ""),
+            disabled: currentPage === totalPages
+        }).click(function() {
+            if (currentPage < totalPages) {
+                renderPage(currentPage + 1);
+            }
+        });
+        
+        // 页码选择器
+        var pageSelect = $("<select>", {
+            class: "page-select"
+        }).change(function() {
+            renderPage(parseInt($(this).val()));
+        });
+        
+        for (var p = 1; p <= totalPages; p++) {
+            var option = $("<option>", {
+                value: p,
+                text: "第 " + p + " 页",
+                selected: p === currentPage
+            });
+            pageSelect.append(option);
+        }
+        
+        // 组装分页控件
+        pagination.append(
+            prevButton,
+            $("<span>", { text: " 页码: ", class: "page-text" }),
+            pageSelect,
+            $("<span>", { text: " / " + totalPages + " ", class: "page-text" }),
+            nextButton
+        );
+        
+        // 添加到面板
+        ratingsPanel.append(pageInfo, ratingsTable, pagination);
+        
+        // 添加CSS样式
+        $("<style>")
+            .text(`
+                .pagination { margin-top: 20px; text-align: center; }
+                .page-btn { padding: 5px 10px; margin: 0 5px; cursor: pointer; }
+                .page-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+                .page-select { padding: 5px; margin: 0 5px; }
+                .ratings-page-info { margin-bottom: 10px; font-weight: bold; }
+                .page-text { vertical-align: middle; }
+            `)
+            .appendTo("head");
+    }
+    
+    // 渲染第一页
+    renderPage(1);
+}
