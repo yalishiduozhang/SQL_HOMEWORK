@@ -281,18 +281,20 @@ function showMovieDetails(movie, container) {
         moviePanel.append(ratingsSection);
         
         // 添加评分分布样式
-        $("<style>")
-            .text(`
-                .ratings-distribution-section { margin-top: 30px; }
-                .rating-distribution-container { margin-top: 15px; }
-                .rating-distribution-row { display: flex; align-items: center; margin-bottom: 8px; }
-                .rating-label { width: 60px; text-align: right; margin-right: 10px; }
-                .rating-bar-container { flex-grow: 1; background-color: #f0f0f0; height: 20px; border-radius: 4px; overflow: hidden; }
-                .rating-bar { height: 100%; background-color: #ffad33; }
-                .rating-percentage { width: 60px; margin-left: 10px; }
-                .distribution-note { font-size: 12px; color: #666; margin-top: 10px; font-style: italic; }
-            `)
-            .appendTo("head");
+        if ($("#rating-distribution-styles").length === 0) {
+            $("<style>", { id: "rating-distribution-styles" })
+                .text(`
+                    .ratings-distribution-section { margin-top: 30px; }
+                    .rating-distribution-container { margin-top: 15px; }
+                    .rating-distribution-row { display: flex; align-items: center; margin-bottom: 8px; }
+                    .rating-label { width: 60px; text-align: right; margin-right: 10px; }
+                    .rating-bar-container { flex-grow: 1; background-color: #f0f0f0; height: 20px; border-radius: 4px; overflow: hidden; }
+                    .rating-bar { height: 100%; background-color: #ffad33; }
+                    .rating-percentage { width: 60px; margin-left: 10px; }
+                    .distribution-note { font-size: 12px; color: #666; margin-top: 10px; font-style: italic; }
+                `)
+                .appendTo("head");
+        }
     }
     
     // 正态分布计算函数
@@ -384,6 +386,20 @@ function showUserRatings(user, container) {
     var pageSize = 20; // 每页显示20条评分
     var totalPages = Math.ceil(sortedRatings.length / pageSize);
     var currentPage = 1; // 默认显示第一页
+
+    // 添加分页样式 - 确保样式只添加一次
+    if ($("#ratings-pagination-styles").length === 0) {
+        $("<style>", { id: "ratings-pagination-styles" })
+            .text(`
+                .pagination { margin-top: 20px; text-align: center; }
+                .page-btn { padding: 5px 10px; margin: 0 5px; cursor: pointer; }
+                .page-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+                .page-select { padding: 5px; margin: 0 5px; }
+                .ratings-page-info { margin-bottom: 10px; font-weight: bold; }
+                .page-text { vertical-align: middle; }
+            `)
+            .appendTo("head");
+    }
 
     function renderPage(page) {
         currentPage = page;
@@ -495,18 +511,6 @@ function showUserRatings(user, container) {
         
         // 添加到面板
         ratingsPanel.append(pageInfo, ratingsTable, pagination);
-        
-        // 添加CSS样式
-        $("<style>")
-            .text(`
-                .pagination { margin-top: 20px; text-align: center; }
-                .page-btn { padding: 5px 10px; margin: 0 5px; cursor: pointer; }
-                .page-btn.disabled { opacity: 0.5; cursor: not-allowed; }
-                .page-select { padding: 5px; margin: 0 5px; }
-                .ratings-page-info { margin-bottom: 10px; font-weight: bold; }
-                .page-text { vertical-align: middle; }
-            `)
-            .appendTo("head");
     }
     
     // 渲染第一页
