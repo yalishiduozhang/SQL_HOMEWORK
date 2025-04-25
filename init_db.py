@@ -179,6 +179,7 @@ def import_rating_data(connection, rating_data_path):
                         user_id = int(row[0])
                         movie_id = int(row[1])
                         rating = float(row[2])
+                        timestamp = int(row[3])
                         
                         cursor.execute(user_query, (
                             user_id, 
@@ -187,12 +188,12 @@ def import_rating_data(connection, rating_data_path):
                             f"user_{user_id}@example.com"
                         ))
                         
-                        rating_batch.append((user_id, movie_id, rating))
+                        rating_batch.append((user_id, movie_id, rating, timestamp))
                         count += 1
                         
                         if len(rating_batch) >= batch_size:
                             try:
-                                rating_query = "INSERT INTO ratings (user_id, movie_id, rating) VALUES (%s, %s, %s)"
+                                rating_query = "INSERT INTO ratings (user_id, movie_id, rating, timestamp) VALUES (%s, %s, %s, %s)"
                                 cursor.executemany(rating_query, rating_batch)
                                 connection.commit()
                                 print(f"已导入 {count} 条评分")
@@ -203,7 +204,7 @@ def import_rating_data(connection, rating_data_path):
                                 
                                 for rating_data in rating_batch:
                                     try:
-                                        cursor.execute("INSERT INTO ratings (user_id, movie_id, rating) VALUES (%s, %s, %s)", rating_data)
+                                        cursor.execute("INSERT INTO ratings (user_id, movie_id, rating, timestamp) VALUES (%s, %s, %s, %s)", rating_data)
                                         connection.commit()
                                     except Error as inner_e:
                                         print(f"插入单条评分出错: {inner_e}")
@@ -219,7 +220,7 @@ def import_rating_data(connection, rating_data_path):
         
         if rating_batch:
             try:
-                rating_query = "INSERT INTO ratings (user_id, movie_id, rating) VALUES (%s, %s, %s)"
+                rating_query = "INSERT INTO ratings (user_id, movie_id, rating, timestamp) VALUES (%s, %s, %s, %s)"
                 cursor.executemany(rating_query, rating_batch)
                 connection.commit()
             except Error as e:
@@ -228,7 +229,7 @@ def import_rating_data(connection, rating_data_path):
                 
                 for rating_data in rating_batch:
                     try:
-                        cursor.execute("INSERT INTO ratings (user_id, movie_id, rating) VALUES (%s, %s, %s)", rating_data)
+                        cursor.execute("INSERT INTO ratings (user_id, movie_id, rating, timestamp) VALUES (%s, %s, %s, %s)", rating_data)
                         connection.commit()
                     except Error as inner_e:
                         print(f"插入单条评分出错: {inner_e}")

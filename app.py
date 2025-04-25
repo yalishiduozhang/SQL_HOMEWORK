@@ -23,6 +23,7 @@ class DatabaseManager:
     
     def __init__(self):
         self.connection = None
+        self.pool = None
         self.connect()
     
     def connect(self):
@@ -30,16 +31,25 @@ class DatabaseManager:
             if DatabaseManager._password is None:
                 DatabaseManager._password = getpass.getpass("请输入数据库密码：")
             
-            self.connection = mysql.connector.connect(
+            # 创建连接池
+            self.pool = mysql.connector.pooling.MySQLConnectionPool(
+                pool_name="moviehunter",
+                pool_size=5,
                 host='localhost',
                 database='moviehunter',
                 user='root',
                 password=DatabaseManager._password
             )
-            if self.connection.is_connected():
+            
+            # 测试连接
+            connection = self.pool.get_connection()
+            if connection.is_connected():
                 print("成功连接到MySQL数据库")
+                connection.close()
+                
         except Error as e:
             print(f"连接MySQL数据库时出错: {e}")
+            self.pool = None
             DatabaseManager._password = None
             self.connect()
     
@@ -50,13 +60,15 @@ class DatabaseManager:
     
     def execute_query(self, query, params=None):
         try:
-            cursor = self.connection.cursor(dictionary=True)
+            connection = self.pool.get_connection()
+            cursor = connection.cursor(dictionary=True)
             if params:
                 cursor.execute(query, params)
             else:
                 cursor.execute(query)
             result = cursor.fetchall()
             cursor.close()
+            connection.close()
             return result
         except Error as e:
             print(f"执行查询时出错: {e}")
@@ -66,18 +78,18 @@ class DatabaseManager:
     
     def execute_update(self, query, params=None):
         try:
-            cursor = self.connection.cursor()
+            connection = self.pool.get_connection()
+            cursor = connection.cursor()
             if params:
                 cursor.execute(query, params)
             else:
                 cursor.execute(query)
-            self.connection.commit()
+            connection.commit()
             cursor.close()
+            connection.close()
             return True
         except Error as e:
             print(f"执行更新时出错: {e}")
-            if not self.connection.is_connected():
-                self.connect()
             return False
     
     def get_all_movies(self):
@@ -113,12 +125,20 @@ class DatabaseManager:
     
     def get_ratings_by_user_id(self, user_id):
         query = """
-        SELECT r.*, m.title 
+        SELECT r.*, m.title , r.timestamp
         FROM ratings r 
         JOIN movies m ON r.movie_id = m.id 
         WHERE r.user_id = %s
         """
         return self.execute_query(query, (user_id,))
+    
+    def get_all_ratings(self):
+        query = """
+        SELECT r.*, m.title 
+        FROM ratings r 
+        JOIN movies m ON r.movie_id = m.id
+        """
+        return self.execute_query(query)   
     
     def add_movie(self, title, year, director, genre, rating, poster_url, description):
         query = """
@@ -167,6 +187,9 @@ class DataManager:
             movie.year = movie_data['year']
             movie.director = movie_data['director']
             movie.genre = movie_data['genre']
+            movie.genres = []
+            if movie_data['genre']:
+                movie.genres = [g.strip() for g in movie_data['genre'].split(',')]
             movie.rating = movie_data['rating']
             movie.poster_url = movie_data['poster_url']
             movie.description = movie_data['description']
@@ -182,6 +205,14 @@ class DataManager:
     def load_users_from_db(self):
         print("从数据库加载用户数据...")
         users = self.db_manager.get_all_users()
+
+        all_ratings = self.db_manager.get_all_ratings()
+        ratings_by_user = {}
+        for rating in all_ratings:
+            user_id = rating['user_id']
+            if user_id not in ratings_by_user:
+                ratings_by_user[user_id] = []
+            ratings_by_user[user_id].append(rating)
         for user_data in users:
             user = User()
             user.user_id = user_data['id']
@@ -190,13 +221,15 @@ class DataManager:
             
             self.user_map[user.user_id] = user
             
-            ratings = self.db_manager.get_ratings_by_user_id(user.user_id)
-            for rating_data in ratings:
+            user_ratings = ratings_by_user.get(user.user_id, [])
+            for rating_data in user_ratings:
                 rating = Rating()
                 rating.user_id = rating_data['user_id']
                 rating.movie_id = rating_data['movie_id']
-                rating.rating = rating_data['rating']
+                rating.score = rating_data['rating']
                 rating.comment = rating_data['comment']
+                rating.title = rating_data['title']
+                rating.timestamp = rating_data['timestamp']
                 
                 user.add_rating(rating)
                 
@@ -204,87 +237,88 @@ class DataManager:
                     movie = self.movie_map[rating.movie_id]
                     movie.add_rating(rating)
     
-    def load_data(self, movie_data_path, link_data_path, rating_data_path, movie_emb_path, user_emb_path):
+    def load_data(self, movie_emb_path, user_emb_path):
         print("正在加载数据...")
-        self.load_movie_data(movie_data_path)
-        self.load_link_data(link_data_path)
-        self.load_rating_data(rating_data_path)
+        # self.load_movie_data(movie_data_path)
+        # self.load_link_data(link_data_path)
+        # self.load_rating_data(rating_data_path)
         self.load_movie_emb(movie_emb_path)
         self.load_user_emb(user_emb_path)
         print("数据加载完成")
     
-    def load_movie_data(self, movie_data_path):
-        print(f"从 {movie_data_path} 加载电影数据...")
-        with open(movie_data_path, 'r', encoding='utf-8') as file:
-            reader = csv.reader(file)
-            next(reader)
-            for row in reader:
-                if len(row) == 3:
-                    movie = Movie()
-                    movie.movie_id = int(row[0])
+    # def load_movie_data(self, movie_data_path):
+    #     print(f"从 {movie_data_path} 加载电影数据...")
+    #     with open(movie_data_path, 'r', encoding='utf-8') as file:
+    #         reader = csv.reader(file)
+    #         next(reader)
+    #         for row in reader:
+    #             if len(row) == 3:
+    #                 movie = Movie()
+    #                 movie.movie_id = int(row[0])
                     
-                    title = row[1].strip()
-                    release_year = self.parse_release_year(title)
-                    if release_year == -1:
-                        movie.title = title
-                    else:
-                        movie.release_year = release_year
-                        movie.title = title[:-6].strip()
+    #                 title = row[1].strip()
+    #                 release_year = self.parse_release_year(title)
+    #                 if release_year == -1:
+    #                     movie.title = title
+    #                 else:
+    #                     movie.release_year = release_year
+    #                     movie.title = title[:-6].strip()
                     
-                    genres = row[2]
-                    if genres.strip():
-                        for genre in genres.split('|'):
-                            movie.genres.append(genre)
-                            self.add_movie_to_genre_index(genre, movie)
+    #                 genres = row[2]
+    #                 if genres.strip():
+    #                     for genre in genres.split('|'):
+    #                         movie.genres.append(genre)
+    #                         self.add_movie_to_genre_index(genre, movie)
                     
-                    self.movie_map[movie.movie_id] = movie
+    #                 self.movie_map[movie.movie_id] = movie
         
-        print(f"电影数据加载完成，共 {len(self.movie_map)} 部电影")
+    #     print(f"电影数据加载完成，共 {len(self.movie_map)} 部电影")
     
-    def load_link_data(self, link_data_path):
-        print(f"从 {link_data_path} 加载链接数据...")
-        count = 0
-        with open(link_data_path, 'r', encoding='utf-8') as file:
-            reader = csv.reader(file)
-            next(reader)
-            for row in reader:
-                if len(row) == 3:
-                    movie_id = int(row[0])
-                    movie = self.movie_map.get(movie_id)
-                    if movie:
-                        count += 1
-                        movie.imdb_id = row[1].strip()
-                        movie.tmdb_id = row[2].strip()
-        print(f"链接数据加载完成，共更新 {count} 部电影")
+    # def load_link_data(self, link_data_path):
+    #     print(f"从 {link_data_path} 加载链接数据...")
+    #     count = 0
+    #     with open(link_data_path, 'r', encoding='utf-8') as file:
+    #         reader = csv.reader(file)
+    #         next(reader)
+    #         for row in reader:
+    #             if len(row) == 3:
+    #                 movie_id = int(row[0])
+    #                 movie = self.movie_map.get(movie_id)
+    #                 if movie:
+    #                     count += 1
+    #                     movie.imdb_id = row[1].strip()
+    #                     movie.tmdb_id = row[2].strip()
+    #     print(f"链接数据加载完成，共更新 {count} 部电影")
     
-    def load_rating_data(self, rating_data_path):
-        print(f"从 {rating_data_path} 加载评分数据...")
-        with open(rating_data_path, 'r', encoding='utf-8') as file:
-            reader = csv.reader(file)
-            next(reader)
-            for row in reader:
-                if len(row) == 4:
-                    user_id = int(row[0])
-                    movie_id = int(row[1])
-                    score = float(row[2])
-                    timestamp = int(row[3])
+    # def load_rating_data(self, rating_data_path):
+    #     print(f"从 {rating_data_path} 加载评分数据...")
+    #     with open(rating_data_path, 'r', encoding='utf-8') as file:
+    #         reader = csv.reader(file)
+    #         next(reader)
+    #         for row in reader:
+    #             if len(row) == 4:
+    #                 user_id = int(row[0])
+    #                 movie_id = int(row[1])
+    #                 score = float(row[2])
+    #                 timestamp = int(row[3])
                     
-                    if user_id not in self.user_map:
-                        self.user_map[user_id] = User()
-                        self.user_map[user_id].user_id = user_id
+    #                 if user_id not in self.user_map:
+    #                     self.user_map[user_id] = User()
+    #                     self.user_map[user_id].user_id = user_id
                     
-                    movie = self.movie_map.get(movie_id)
-                    if movie:
-                        rating = Rating()
-                        rating.user_id = user_id
-                        rating.movie_id = movie_id
-                        rating.score = score
-                        rating.timestamp = timestamp
+    #                 movie = self.movie_map.get(movie_id)
+    #                 if movie:
+    #                     rating = Rating()
+    #                     rating.user_id = user_id
+    #                     rating.movie_id = movie_id
+    #                     rating.score = score
+    #                     rating.timestamp = timestamp
+    #                     rating.title = movie.title
                         
-                        self.user_map[user_id].add_rating(rating)
-                        movie.add_rating(rating)
+    #                     self.user_map[user_id].add_rating(rating)
+    #                     movie.add_rating(rating)
         
-        print(f"评分数据加载完成，共 {len(self.user_map)} 个用户")
+    #     print(f"评分数据加载完成，共 {len(self.user_map)} 个用户")
     
     def load_movie_emb(self, movie_emb_path):
         if not os.path.exists(movie_emb_path):
@@ -465,13 +499,15 @@ class Rating:
         self.user_id = 0
         self.score = 0.0
         self.timestamp = 0
+        self.title = ""
     
     def to_dict(self):
         return {
             'movieId': self.movie_id,
             'userId': self.user_id,
             'score': self.score,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'title': self.title
         }
 
 class Embedding:
@@ -624,12 +660,16 @@ def user_page():
 
 if __name__ == '__main__':
     data_dir = os.path.join('data')
-    DataManager.get_instance().load_data(
-        os.path.join(data_dir, 'movies.csv'),
-        os.path.join(data_dir, 'links.csv'),
-        os.path.join(data_dir, 'ratings.csv'),
+    # DataManager.get_instance().load_data(
+    #     os.path.join(data_dir, 'movies.csv'),
+    #     os.path.join(data_dir, 'links.csv'),
+    #     os.path.join(data_dir, 'ratings.csv'),
+    #     os.path.join(data_dir, 'item2vecEmb.csv'),
+    #     os.path.join(data_dir, 'userEmb.csv')
+    # )
+    instance = DataManager.get_instance()
+    instance.load_data(
         os.path.join(data_dir, 'item2vecEmb.csv'),
         os.path.join(data_dir, 'userEmb.csv')
     )
-    
-    app.run(host='0.0.0.0', port=6010, debug=True) 
+    app.run(host='0.0.0.0', port=6010, debug=False) 
