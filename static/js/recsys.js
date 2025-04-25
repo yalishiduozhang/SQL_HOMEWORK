@@ -328,7 +328,7 @@ function showUserInfo(user, container) {
     });
 
     var avatarImg = $("<img>", {
-        src: "static/images/user-avatar.png",
+        src: "static/images/avatar/" + (userId % 10) + ".png",
         onerror: "this.onerror=null;this.src='static/images/default-avatar.png';",
         class: "avatar-img"
     });
