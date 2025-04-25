@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect
 import os
 import csv
 import json
@@ -123,6 +123,16 @@ class DatabaseManager:
         LIMIT %s
         """
         return self.execute_query(query, (limit,))
+    
+    def search_movies(self, keyword, limit=16):
+        query = """
+        SELECT * FROM movies 
+        WHERE title LIKE %s OR genre LIKE %s 
+        ORDER BY rating DESC 
+        LIMIT %s
+        """
+        keyword_param = f"%{keyword}%"
+        return self.execute_query(query, (keyword_param, keyword_param, limit))
     
     def get_all_users(self):
         query = "SELECT * FROM users"
@@ -694,6 +704,19 @@ def most_commented():
     db = DatabaseManager.get_instance()
     commented_movies = db.get_most_commented_movies(16)
     return render_template('index.html', page_title="Most Commented Movies", movies=commented_movies)
+
+@app.route('/search')
+def search():
+    keyword = request.args.get('q', '')
+    if not keyword:
+        return redirect('/')
+    
+    db = DatabaseManager.get_instance()
+    search_results = db.search_movies(keyword)
+    return render_template('index.html', 
+                          page_title=f"Search Results for '{keyword}'", 
+                          movies=search_results,
+                          search_term=keyword)
 
 if __name__ == '__main__':
     data_dir = os.path.join('data')

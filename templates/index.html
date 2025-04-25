@@ -29,7 +29,10 @@
             </ul>
             <div id="search">
                     <label for="search-field">SEARCH</label>
-                    <input type="text" name="search field" placeholder="Enter search here" id="search-field" title="Enter search here" class="blink search-field"  />
+                    <form action="/search" method="get" style="display: inline;">
+                        <input type="text" name="q" placeholder="Enter search here" id="search-field" title="Enter search here" class="blink search-field" value="{{ search_term if search_term else '' }}" />
+                        <button type="submit" style="display:none;">Search</button>
+                    </form>
             </div>
         </div>
 
@@ -62,6 +65,10 @@
                         </a>
                     </div>
                     {% endfor %}
+                </div>
+                {% elif search_term %}
+                <div class="no-results">
+                    <p>No movies found matching "{{ search_term }}". Try different keywords.</p>
                 </div>
                 {% endif %}
             </div>

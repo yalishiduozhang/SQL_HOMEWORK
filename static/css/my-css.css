@@ -57,9 +57,17 @@ body {
 }
 
 #search-field {
-    padding: 5px;
+    padding: 8px;
     border: none;
     border-radius: 3px;
+    width: 200px;
+    transition: width 0.3s;
+}
+
+#search-field:focus {
+    width: 250px;
+    outline: none;
+    box-shadow: 0 0 4px rgba(229, 9, 20, 0.5);
 }
 
 .ml4-container {
@@ -263,4 +271,24 @@ body {
 
 .ratings-table a:hover {
     text-decoration: underline;
-} 
+}
+
+/* 搜索相关样式 */
+#search form {
+    display: flex;
+    align-items: center;
+}
+
+.no-results {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    text-align: center;
+}
+
+.no-results p {
+    font-size: 18px;
+    color: #666;
+}
