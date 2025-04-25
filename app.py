@@ -154,6 +154,18 @@ class DatabaseManager:
         """
         return self.execute_query(query, (movie_id, limit, offset))
     
+    def get_ratings_by_score(self, movie_id, score, limit=10, offset=0):
+        """获取特定电影特定评分的所有用户评价"""
+        query = """
+        SELECT r.*, u.username 
+        FROM ratings r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE r.movie_id = %s AND r.rating = %s
+        ORDER BY r.timestamp DESC
+        LIMIT %s OFFSET %s
+        """
+        return self.execute_query(query, (movie_id, score, limit, offset))
+    
     def get_ratings_count_by_movie_id(self, movie_id):
         query = """
         SELECT COUNT(*) as count
@@ -161,6 +173,16 @@ class DatabaseManager:
         WHERE movie_id = %s
         """
         result = self.execute_query(query, (movie_id,))
+        return result[0]['count'] if result else 0
+    
+    def get_ratings_count_by_score(self, movie_id, score):
+        """获取特定电影特定评分的评价总数"""
+        query = """
+        SELECT COUNT(*) as count
+        FROM ratings
+        WHERE movie_id = %s AND rating = %s
+        """
+        result = self.execute_query(query, (movie_id, score))
         return result[0]['count'] if result else 0
     
     def get_diverse_ratings_by_movie_id(self, movie_id, limit=10):
@@ -732,6 +754,31 @@ def get_movie_ratings():
     except Exception as e:
         print(f"获取电影评分出错: {e}")
         return jsonify({'ratings': [], 'total': 0, 'page': 1, 'pages': 0})
+
+@app.route('/getmovieratingsbyscore')
+def get_movie_ratings_by_score():
+    try:
+        movie_id = int(request.args.get('id'))
+        score = float(request.args.get('score'))
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('size', 10))
+        
+        offset = (page - 1) * page_size
+        
+        db = DatabaseManager.get_instance()
+        ratings = db.get_ratings_by_score(movie_id, score, page_size, offset)
+        total_count = db.get_ratings_count_by_score(movie_id, score)
+        
+        return jsonify({
+            'ratings': ratings,
+            'total': total_count,
+            'page': page,
+            'pages': math.ceil(total_count / page_size),
+            'score': score
+        })
+    except Exception as e:
+        print(f"获取电影特定评分出错: {e}")
+        return jsonify({'ratings': [], 'total': 0, 'page': 1, 'pages': 0, 'score': 0})
 
 @app.route('/getrecommendation')
 def get_recommendation():
