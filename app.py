@@ -71,7 +71,12 @@ class DatabaseManager:
             return result
         except Error as e:
             print(f"执行查询时出错: {e}")
-            if not self.connection.is_connected():
+            try:
+                if 'connection' in locals() and connection and connection.is_connected():
+                    connection.close()
+            except:
+                pass
+            if self.pool is None:
                 self.connect()
             return []
     
@@ -285,13 +290,21 @@ class DatabaseManager:
         return result[0]['embedding'] if result else None
     
     def get_all_movie_embeddings(self):
-        query = "SELECT movie_id, embedding FROM movie_embeddings"
-        return self.execute_query(query)
+        try:
+            query = "SELECT movie_id, embedding FROM movie_embeddings"
+            return self.execute_query(query)
+        except Exception as e:
+            print(f"获取电影嵌入向量时出错: {e}")
+            return []
     
     def get_all_user_embeddings(self):
-        query = "SELECT user_id, embedding FROM user_embeddings"
-        return self.execute_query(query)
-    
+        try:
+            query = "SELECT user_id, embedding FROM user_embeddings"
+            return self.execute_query(query)
+        except Exception as e:
+            print(f"获取用户嵌入向量时出错: {e}")
+            return []
+
 class DataManager:
     _instance = None
     
@@ -453,33 +466,41 @@ class DataManager:
     
     def load_movie_emb_from_db(self):
         print("从数据库加载电影嵌入向量...")
-        valid_emb_count = 0
-        
-        movie_embeddings = self.db_manager.get_all_movie_embeddings()
-        for emb_data in movie_embeddings:
-            movie_id = emb_data['movie_id']
-            movie = self.get_movie_by_id(movie_id)
-            if movie:
-                emb_str = emb_data['embedding']
-                movie.emb = Embedding(self.parse_emb_str(emb_str))
-                valid_emb_count += 1
-        
-        print(f"电影嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
+        try:
+            movie_embeddings = self.db_manager.get_all_movie_embeddings()
+            valid_emb_count = 0
+            
+            for emb_data in movie_embeddings:
+                movie_id = emb_data['movie_id']
+                movie = self.get_movie_by_id(movie_id)
+                if movie:
+                    emb_str = emb_data['embedding']
+                    movie.emb = Embedding(self.parse_emb_str(emb_str))
+                    valid_emb_count += 1
+            
+            print(f"电影嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
+        except Exception as e:
+            print(f"加载电影嵌入向量时出错: {e}")
+            print("将跳过电影嵌入向量加载")
     
     def load_user_emb_from_db(self):
         print("从数据库加载用户嵌入向量...")
-        valid_emb_count = 0
-        
-        user_embeddings = self.db_manager.get_all_user_embeddings()
-        for emb_data in user_embeddings:
-            user_id = emb_data['user_id']
-            user = self.get_user_by_id(user_id)
-            if user:
-                emb_str = emb_data['embedding']
-                user.emb = Embedding(self.parse_emb_str(emb_str))
-                valid_emb_count += 1
-        
-        print(f"用户嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
+        try:
+            user_embeddings = self.db_manager.get_all_user_embeddings()
+            valid_emb_count = 0
+            
+            for emb_data in user_embeddings:
+                user_id = emb_data['user_id']
+                user = self.get_user_by_id(user_id)
+                if user:
+                    emb_str = emb_data['embedding']
+                    user.emb = Embedding(self.parse_emb_str(emb_str))
+                    valid_emb_count += 1
+            
+            print(f"用户嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
+        except Exception as e:
+            print(f"加载用户嵌入向量时出错: {e}")
+            print("将跳过用户嵌入向量加载")
     
     def parse_release_year(self, raw_title):
         if not raw_title or len(raw_title.strip()) < 6:
