@@ -213,7 +213,7 @@ class DataManager:
             movie = Movie()
             movie.movie_id = movie_data['id']
             movie.title = movie_data['title']
-            movie.year = movie_data['year']
+            movie.release_year = movie_data['year']
             movie.director = movie_data['director']
             movie.genre = movie_data['genre']
             movie.genres = []
