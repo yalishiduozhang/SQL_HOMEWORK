@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-    <title>Home | Movie Hunter</title>
+    <title>{% if page_title %}{{ page_title }}{% else %}Home{% endif %} | Movie Hunter</title>
     <meta name="description" content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#ffffff"/>
@@ -22,10 +22,10 @@
         </div>
         <div id="sub-navigation">
             <ul>
-                <li><a href="#">SHOW ALL</a></li>
-                <li><a href="#">LATEST TRAILERS</a></li>
-                <li><a href="#">TOP RATED</a></li>
-                <li><a href="#">MOST COMMENTED</a></li>
+                <li><a href="/">HOME</a></li>
+                <li><a href="/latest">LATEST TRAILERS</a></li>
+                <li><a href="/top-rated">TOP RATED</a></li>
+                <li><a href="/most-commented">MOST COMMENTED</a></li>
             </ul>
             <div id="search">
                     <label for="search-field">SEARCH</label>
@@ -38,7 +38,32 @@
         <div id="main-container">
             <div class="frontpage" id="recPage">
                 <div class="frontpage-section-top">
+                    {% if page_title %}
+                        <div class="label collection-label">{{ page_title }}</div>
+                    {% endif %}
                 </div>
+                
+                {% if movies %}
+                <!-- 显示特定类型的电影列表 -->
+                <div class="collection-panel">
+                    {% for movie in movies %}
+                    <div class="movie-card" data-movieid="{{ movie.id }}">
+                        <a href="movie.html?id={{ movie.id }}&model=default" class="movie-card-link">
+                            <div class="poster-wrapper">
+                                <img src="/static/posters/{{ movie.id }}.jpg" 
+                                     onerror="this.onerror=null;this.src='static/images/default-poster.jpg';" 
+                                     class="poster">
+                            </div>
+                            <div class="movie-meta">
+                                <div class="title">{{ movie.title }} {% if movie.year %}({{ movie.year }}){% endif %}</div>
+                                <div class="rating">{% if movie.rating %}{{ movie.rating }}{% else %}N/A{% endif %}</div>
+                                <div class="genres">{{ movie.genre }}</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -48,11 +73,14 @@
 <script type="text/javascript">
 var baseUrl = window.location.protocol + "//" + window.location.host + "/";
 
-addGenreRow('#recPage', 'Action', 'action-collection', 8, baseUrl);
-addGenreRow('#recPage', 'Romance', 'romance-collection', 8, baseUrl);
-addGenreRow('#recPage', 'Thriller', 'thriller-collection', 8, baseUrl);
-addGenreRow('#recPage', 'Comedy', 'comedy-collection', 8, baseUrl);
-addGenreRow('#recPage', 'Drama', 'drama-collection', 8, baseUrl);
-addGenreRow('#recPage', 'Adventure', 'adventure-collection', 8, baseUrl);
+{% if not movies %}
+    // 首页默认内容
+    addGenreRow('#recPage', 'Action', 'action-collection', 8, baseUrl);
+    addGenreRow('#recPage', 'Romance', 'romance-collection', 8, baseUrl);
+    addGenreRow('#recPage', 'Thriller', 'thriller-collection', 8, baseUrl);
+    addGenreRow('#recPage', 'Comedy', 'comedy-collection', 8, baseUrl);
+    addGenreRow('#recPage', 'Drama', 'drama-collection', 8, baseUrl);
+    addGenreRow('#recPage', 'Adventure', 'adventure-collection', 8, baseUrl);
+{% endif %}
 </script>
 </html> 

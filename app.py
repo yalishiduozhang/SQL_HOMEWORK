@@ -105,6 +105,25 @@ class DatabaseManager:
         query = f"SELECT * FROM movies WHERE genre LIKE %s ORDER BY {order_by} DESC LIMIT %s"
         return self.execute_query(query, (f"%{genre}%", limit))
     
+    def get_latest_movies(self, limit=16):
+        query = "SELECT * FROM movies ORDER BY year DESC LIMIT %s"
+        return self.execute_query(query, (limit,))
+    
+    def get_top_rated_movies(self, limit=16):
+        query = "SELECT * FROM movies WHERE rating > 0 ORDER BY rating DESC LIMIT %s"
+        return self.execute_query(query, (limit,))
+    
+    def get_most_commented_movies(self, limit=16):
+        query = """
+        SELECT m.*, COUNT(r.id) as comment_count 
+        FROM movies m
+        JOIN ratings r ON m.id = r.movie_id
+        GROUP BY m.id
+        ORDER BY comment_count DESC
+        LIMIT %s
+        """
+        return self.execute_query(query, (limit,))
+    
     def get_all_users(self):
         query = "SELECT * FROM users"
         return self.execute_query(query)
@@ -657,6 +676,24 @@ def movie_page():
 @app.route('/user.html')
 def user_page():
     return render_template('user.html')
+
+@app.route('/latest')
+def latest_trailers():
+    db = DatabaseManager.get_instance()
+    latest_movies = db.get_latest_movies(16)
+    return render_template('index.html', page_title="Latest Trailers", movies=latest_movies)
+
+@app.route('/top-rated')
+def top_rated():
+    db = DatabaseManager.get_instance()
+    top_movies = db.get_top_rated_movies(16)
+    return render_template('index.html', page_title="Top Rated Movies", movies=top_movies)
+
+@app.route('/most-commented')
+def most_commented():
+    db = DatabaseManager.get_instance()
+    commented_movies = db.get_most_commented_movies(16)
+    return render_template('index.html', page_title="Most Commented Movies", movies=commented_movies)
 
 if __name__ == '__main__':
     data_dir = os.path.join('data')

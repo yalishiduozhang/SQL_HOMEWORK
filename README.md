@@ -8,13 +8,18 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 - 按类型筛选电影
 - 基于用户历史评分的个性化电影推荐
 - 发现与特定电影相似的其他影片
+- 浏览最新上映的电影（LATEST TRAILERS）
+- 查看评分最高的电影（TOP RATED）
+- 查看评论最多的热门电影（MOST COMMENTED）
+- 用户个人资料页面，包括个性化头像和评分历史
+- 完整的导航菜单，支持全站快速访问
 
 ## 我们目前用到的技术
 
 - **后端**: Python 3.6+, Flask
 - **数据库**: MySQL 5.7+
 - **数据处理**: NumPy, Pandas
-- **前端**: HTML, CSS, JavaScript
+- **前端**: HTML, CSS, JavaScript, jQuery
 - **数据分析**: 协同过滤算法, 基于内容的推荐算法
 
 ## 环境要求
@@ -24,7 +29,7 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 - Flask
 - NumPy
 - Pandas
-- mysql-connector-python
+- mysql-connector-python (8.0.22+)
 
 ## 安装步骤
 
@@ -54,17 +59,27 @@ sudo systemctl start mysql
 pip install -r requirements.txt
 ```
 
+如果遇到mysql-connector-python没有pooling模块的错误，请尝试：
+```bash
+pip uninstall mysql-connector-python
+pip install mysql-connector-python>=8.0.22
+```
+
 ### 3. 初始化数据库
 
 1. 确保MySQL服务已启动
-2. 运行初始化脚本：
+2. 如果之前已经初始化过数据库，建议重新初始化以确保结构一致：
+   ```sql
+   DROP DATABASE IF EXISTS moviehunter;
+   ```
+3. 运行初始化脚本：
 
 ```bash
 python init_db.py
 ```
 
-3. 按提示输入MySQL数据库密码
-4. 等待系统完成数据库创建和示例数据导入
+4. 按提示输入MySQL数据库密码
+5. 等待系统完成数据库创建和示例数据导入
 
 ### 4. 运行应用程序
 
@@ -115,6 +130,7 @@ MovieHunter使用MySQL数据库存储数据，包含以下表：
 - movie_id: 电影ID（外键）
 - rating: 评分（1-5分）
 - comment: 评论
+- timestamp: 时间戳（用于排序）
 - created_at: 创建时间
 
 ## 项目结构
@@ -132,6 +148,11 @@ MovieHonter_python/
 │   ├── item2vecEmb.csv # 电影向量嵌入
 │   └── userEmb.csv     # 用户向量嵌入
 ├── static/             # 静态文件（CSS、JS、图片）
+│   ├── css/            # CSS样式文件
+│   ├── js/             # JavaScript文件
+│   ├── images/         # 图像资源
+│   │   └── avatar/     # 用户头像
+│   └── posters/        # 电影海报
 └── templates/          # HTML模板
     ├── index.html      # 首页模板
     ├── movie.html      # 电影详情页模板
@@ -142,4 +163,6 @@ MovieHonter_python/
 
 - 默认端口为6010，可在app.py中修改
 - 数据库用户名默认为"root"，密码通过交互方式输入
-- 系统会自动创建名为"moviehunter"的数据库 
+- 系统会自动创建名为"moviehunter"的数据库
+- 使用的mysql-connector-python版本需为8.0.22或更高，以支持连接池功能
+- 不用担心JavaScript中的模板语法警告，这些是正常的，因为Flask处理模板后才会将JavaScript发送到浏览器
