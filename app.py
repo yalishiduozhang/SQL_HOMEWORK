@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request, render_template, redirect
 import os
-import csv
 import json
 import math
 import numpy as np
@@ -236,6 +235,24 @@ class DatabaseManager:
         query = "INSERT INTO ratings (user_id, movie_id, rating, comment) VALUES (%s, %s, %s, %s)"
         return self.execute_update(query, (user_id, movie_id, rating, comment))
 
+    def get_movie_embedding(self, movie_id):
+        query = "SELECT embedding FROM movie_embeddings WHERE movie_id = %s"
+        result = self.execute_query(query, (movie_id,))
+        return result[0]['embedding'] if result else None
+    
+    def get_user_embedding(self, user_id):
+        query = "SELECT embedding FROM user_embeddings WHERE user_id = %s"
+        result = self.execute_query(query, (user_id,))
+        return result[0]['embedding'] if result else None
+    
+    def get_all_movie_embeddings(self):
+        query = "SELECT movie_id, embedding FROM movie_embeddings"
+        return self.execute_query(query)
+    
+    def get_all_user_embeddings(self):
+        query = "SELECT user_id, embedding FROM user_embeddings"
+        return self.execute_query(query)
+    
 class DataManager:
     _instance = None
     
@@ -256,6 +273,8 @@ class DataManager:
         print("正在从数据库加载数据...")
         self.load_movies_from_db()
         self.load_users_from_db()
+        self.load_movie_emb_from_db()
+        self.load_user_emb_from_db()
         print("数据加载完成")
     
     def load_movies_from_db(self):
@@ -317,15 +336,7 @@ class DataManager:
                 if rating.movie_id in self.movie_map:
                     movie = self.movie_map[rating.movie_id]
                     movie.add_rating(rating)
-    
-    def load_data(self, movie_emb_path, user_emb_path):
-        print("正在加载数据...")
-        # self.load_movie_data(movie_data_path)
-        # self.load_link_data(link_data_path)
-        # self.load_rating_data(rating_data_path)
-        self.load_movie_emb(movie_emb_path)
-        self.load_user_emb(user_emb_path)
-        print("数据加载完成")
+
     
     # def load_movie_data(self, movie_data_path):
     #     print(f"从 {movie_data_path} 加载电影数据...")
@@ -401,43 +412,33 @@ class DataManager:
         
     #     print(f"评分数据加载完成，共 {len(self.user_map)} 个用户")
     
-    def load_movie_emb(self, movie_emb_path):
-        if not os.path.exists(movie_emb_path):
-            print(f"电影嵌入文件 {movie_emb_path} 不存在")
-            return
-        
-        print(f"从 {movie_emb_path} 加载电影嵌入向量...")
+    def load_movie_emb_from_db(self):
+        print("从数据库加载电影嵌入向量...")
         valid_emb_count = 0
-        with open(movie_emb_path, 'r', encoding='utf-8') as file:
-            for line in file:
-                parts = line.strip().split(':')
-                if len(parts) == 2:
-                    movie_id = int(parts[0])
-                    movie = self.get_movie_by_id(movie_id)
-                    if movie:
-                        emb_str = parts[1]
-                        movie.emb = Embedding(self.parse_emb_str(emb_str))
-                        valid_emb_count += 1
+        
+        movie_embeddings = self.db_manager.get_all_movie_embeddings()
+        for emb_data in movie_embeddings:
+            movie_id = emb_data['movie_id']
+            movie = self.get_movie_by_id(movie_id)
+            if movie:
+                emb_str = emb_data['embedding']
+                movie.emb = Embedding(self.parse_emb_str(emb_str))
+                valid_emb_count += 1
         
         print(f"电影嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
     
-    def load_user_emb(self, user_emb_path):
-        if not os.path.exists(user_emb_path):
-            print(f"用户嵌入文件 {user_emb_path} 不存在")
-            return
-        
-        print(f"从 {user_emb_path} 加载用户嵌入向量...")
+    def load_user_emb_from_db(self):
+        print("从数据库加载用户嵌入向量...")
         valid_emb_count = 0
-        with open(user_emb_path, 'r', encoding='utf-8') as file:
-            for line in file:
-                parts = line.strip().split(':')
-                if len(parts) == 2:
-                    user_id = int(parts[0])
-                    user = self.get_user_by_id(user_id)
-                    if user:
-                        emb_str = parts[1]
-                        user.emb = Embedding(self.parse_emb_str(emb_str))
-                        valid_emb_count += 1
+        
+        user_embeddings = self.db_manager.get_all_user_embeddings()
+        for emb_data in user_embeddings:
+            user_id = emb_data['user_id']
+            user = self.get_user_by_id(user_id)
+            if user:
+                emb_str = emb_data['embedding']
+                user.emb = Embedding(self.parse_emb_str(emb_str))
+                valid_emb_count += 1
         
         print(f"用户嵌入向量加载完成，共 {valid_emb_count} 个嵌入向量")
     
@@ -833,17 +834,5 @@ def search():
                           search_term=keyword)
 
 if __name__ == '__main__':
-    data_dir = os.path.join('data')
-    # DataManager.get_instance().load_data(
-    #     os.path.join(data_dir, 'movies.csv'),
-    #     os.path.join(data_dir, 'links.csv'),
-    #     os.path.join(data_dir, 'ratings.csv'),
-    #     os.path.join(data_dir, 'item2vecEmb.csv'),
-    #     os.path.join(data_dir, 'userEmb.csv')
-    # )
-    instance = DataManager.get_instance()
-    instance.load_data(
-        os.path.join(data_dir, 'item2vecEmb.csv'),
-        os.path.join(data_dir, 'userEmb.csv')
-    )
+    DataManager.get_instance()
     app.run(host='0.0.0.0', port=6010, debug=False) 

@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS movies (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 创建电影向量表
+CREATE TABLE IF NOT EXISTS movie_embeddings (
+    movie_id INT PRIMARY KEY,
+    embedding TEXT NOT NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(id)
+);
+
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -22,6 +29,13 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建用户向量表
+CREATE TABLE IF NOT EXISTS user_embeddings (
+    user_id INT PRIMARY KEY,
+    embedding TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- 创建评分表

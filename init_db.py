@@ -242,6 +242,61 @@ def import_rating_data(connection, rating_data_path):
         connection.rollback()
         return False
 
+def import_embeddings(connection, movie_emb_path, user_emb_path):
+    try:
+        cursor = connection.cursor()
+        print("正在导入嵌入向量数据...")
+        
+        # 导入电影嵌入向量
+        if os.path.exists(movie_emb_path):
+            movie_count = 0
+            with open(movie_emb_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    parts = line.strip().split(':')
+                    if len(parts) == 2:
+                        movie_id = int(parts[0])
+                        embedding = parts[1]
+                        try:
+                            cursor.execute(
+                                "INSERT IGNORE INTO movie_embeddings (movie_id, embedding) VALUES (%s, %s)",
+                                (movie_id, embedding)
+                            )
+                            if cursor.rowcount > 0:
+                                movie_count += 1
+                        except Error as e:
+                            print(f"插入电影嵌入向量出错: {e}")
+            print(f"成功导入 {movie_count} 个电影嵌入向量")
+        else:
+            print(f"电影嵌入向量文件不存在: {movie_emb_path}")
+        
+        # 导入用户嵌入向量
+        if os.path.exists(user_emb_path):
+            user_count = 0
+            with open(user_emb_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    parts = line.strip().split(':')
+                    if len(parts) == 2:
+                        user_id = int(parts[0])
+                        embedding = parts[1]
+                        try:
+                            cursor.execute(
+                                "INSERT IGNORE INTO user_embeddings (user_id, embedding) VALUES (%s, %s)",
+                                (user_id, embedding)
+                            )
+                            if cursor.rowcount > 0:
+                                user_count += 1
+                        except Error as e:
+                            print(f"插入用户嵌入向量出错: {e}")
+            print(f"成功导入 {user_count} 个用户嵌入向量")
+        else:
+            print(f"用户嵌入向量文件不存在: {user_emb_path}")
+        
+        connection.commit()
+        return True
+    except Error as e:
+        print(f"导入嵌入向量数据时出错: {e}")
+        return False
+    
 def update_movie_ratings(connection):
     try:
         cursor = connection.cursor()
@@ -290,6 +345,17 @@ def main():
                 print("导入评分数据失败")
         else:
             print(f"评分数据文件不存在: {rating_data_path}")
+
+        movie_emb_path = os.path.join(os.path.dirname(__file__), 'data', 'item2vecEmb.csv')
+        if not os.path.exists(movie_emb_path):
+            print(f"电影嵌入向量文件不存在: {movie_emb_path}")
+            return
+        
+        user_emb_path = os.path.join(os.path.dirname(__file__), 'data', 'userEmb.csv')
+        if not os.path.exists(user_emb_path):
+            print(f"用户嵌入向量文件不存在: {user_emb_path}")
+            return
+        import_embeddings(connection, movie_emb_path, user_emb_path)
         
         update_movie_ratings(connection)
         
