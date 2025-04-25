@@ -500,11 +500,11 @@ function showAllMovieRatings(movieId, page) {
     var ratingsContainer = $('#movieRatings');
     var paginationContainer = $('#ratingsPagination');
     
-    ratingsContainer.html('<div class="ratings-loading">Loading ratings...</div>');
+    ratingsContainer.html('<div class="ratings-loading">正在加载评分数据...</div>');
     
     $.getJSON(baseUrl + 'getmovieratings?id=' + movieId + '&page=' + page, function(data) {
         if (!data || !data.ratings || data.ratings.length === 0) {
-            ratingsContainer.html('<div class="no-results"><p>No ratings available for this movie.</p></div>');
+            ratingsContainer.html('<div class="no-results"><p>该电影暂无评价</p></div>');
             return;
         }
         
@@ -520,10 +520,10 @@ function showAllMovieRatings(movieId, page) {
         });
         
         tableHeader.append(
-            $("<th>", { text: "User" }),
-            $("<th>", { text: "Score" }),
-            $("<th>", { text: "Date" }),
-            $("<th>", { text: "Comment" })
+            $("<th>", { text: "用户" }),
+            $("<th>", { text: "评分" }),
+            $("<th>", { text: "日期" }),
+            $("<th>", { text: "评论" })
         );
         
         ratingsTable.append(tableHeader);
@@ -536,7 +536,7 @@ function showAllMovieRatings(movieId, page) {
             var userCell = $("<td>");
             var userLink = $("<a>", {
                 href: "user.html?id=" + rating.user_id,
-                text: rating.username || ("User " + rating.user_id)
+                text: rating.username || ("用户 " + rating.user_id)
             });
             userCell.append(userLink);
             
@@ -554,7 +554,7 @@ function showAllMovieRatings(movieId, page) {
                 var date = new Date(rating.timestamp * 1000);
                 dateCell.text(date.toLocaleDateString());
             } else {
-                dateCell.text("Unknown");
+                dateCell.text("未知");
             }
             
             // 评论列
@@ -570,7 +570,7 @@ function showAllMovieRatings(movieId, page) {
         // 创建分页控件
         createPagination(data, paginationContainer, movieId);
     }).fail(function() {
-        ratingsContainer.html('<div class="no-results"><p>Failed to load ratings. Please try again later.</p></div>');
+        ratingsContainer.html('<div class="no-results"><p>加载评分数据失败，请稍后再试</p></div>');
     });
 }
 
@@ -635,7 +635,7 @@ function createPagination(data, container, movieId) {
             prevButton,
             $("<span>", { text: " 页码: ", class: "page-text" }),
             pageSelect,
-            $("<span>", { text: " / " + data.pages + " ", class: "page-text" }),
+            $("<span>", { text: " / " + data.pages + " 页 ", class: "page-text" }),
             nextButton
         )
     );
@@ -697,11 +697,11 @@ function showRatingsByScore(movieId, score) {
  * 加载特定评分的用户评价
  */
 function loadRatingsByScore(movieId, score, page, container, paginationContainer) {
-    container.html('<div class="ratings-loading">Loading ratings...</div>');
+    container.html('<div class="ratings-loading">正在加载评分数据...</div>');
     
     $.getJSON(baseUrl + 'getmovieratingsbyscore?id=' + movieId + '&score=' + score + '&page=' + page, function(data) {
         if (!data || !data.ratings || data.ratings.length === 0) {
-            container.html('<div class="no-results"><p>No ratings available for this score.</p></div>');
+            container.html('<div class="no-results"><p>此评分暂无用户评价</p></div>');
             return;
         }
         
@@ -717,9 +717,9 @@ function loadRatingsByScore(movieId, score, page, container, paginationContainer
         });
         
         tableHeader.append(
-            $("<th>", { text: "User" }),
-            $("<th>", { text: "Date" }),
-            $("<th>", { text: "Comment" })
+            $("<th>", { text: "用户" }),
+            $("<th>", { text: "日期" }),
+            $("<th>", { text: "评论" })
         );
         
         ratingsTable.append(tableHeader);
@@ -732,7 +732,7 @@ function loadRatingsByScore(movieId, score, page, container, paginationContainer
             var userCell = $("<td>");
             var userLink = $("<a>", {
                 href: "user.html?id=" + rating.user_id,
-                text: rating.username || ("User " + rating.user_id)
+                text: rating.username || ("用户 " + rating.user_id)
             });
             userCell.append(userLink);
             
@@ -742,7 +742,7 @@ function loadRatingsByScore(movieId, score, page, container, paginationContainer
                 var date = new Date(rating.timestamp * 1000);
                 dateCell.text(date.toLocaleDateString());
             } else {
-                dateCell.text("Unknown");
+                dateCell.text("未知");
             }
             
             // 评论列
@@ -758,7 +758,7 @@ function loadRatingsByScore(movieId, score, page, container, paginationContainer
         // 创建分页控件
         createRatingsByScorePagination(data, paginationContainer, movieId, score);
     }).fail(function() {
-        container.html('<div class="no-results"><p>Failed to load ratings. Please try again later.</p></div>');
+        container.html('<div class="no-results"><p>加载评分数据失败，请稍后再试</p></div>');
     });
 }
 
@@ -826,7 +826,7 @@ function createRatingsByScorePagination(data, container, movieId, score) {
             prevButton,
             $("<span>", { text: " 页码: ", class: "page-text" }),
             pageSelect,
-            $("<span>", { text: " / " + data.pages + " ", class: "page-text" }),
+            $("<span>", { text: " / " + data.pages + " 页 ", class: "page-text" }),
             nextButton
         )
     );

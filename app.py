@@ -154,17 +154,50 @@ class DatabaseManager:
         """
         return self.execute_query(query, (movie_id, limit, offset))
     
+    def _calculate_score_range(self, score):
+        """计算评分范围"""
+        score = float(score)
+        decimal_part = score - int(score)
+        if decimal_part == 0:  # 整数评分
+            lower_bound = score - 0.25
+            upper_bound = score + 0.25
+        elif abs(decimal_part - 0.5) < 0.01:  # x.5评分
+            lower_bound = int(score) + 0.25
+            upper_bound = int(score) + 0.75
+        else:  # 其他小数评分，使用±0.25
+            lower_bound = score - 0.25
+            upper_bound = score + 0.25
+        return lower_bound, upper_bound
+    
+    def _map_score_to_db_score(self, score):
+        """将用户界面上的评分映射到数据库中的评分"""
+        score = float(score)
+        decimal_part = score - int(score)
+        
+        if decimal_part == 0:  # 整数评分
+            return score
+        elif abs(decimal_part - 0.5) < 0.01:  # x.5评分
+            return int(score)  # 向下取整
+        else:  # 其他小数评分
+            return round(score)  # 四舍五入
+    
     def get_ratings_by_score(self, movie_id, score, limit=10, offset=0):
         """获取特定电影特定评分的所有用户评价"""
+        score = float(score)
+        
+        # 设置匹配区间
+        lower_bound = score - 0.5
+        upper_bound = score + 0.5
+        
         query = """
-        SELECT r.*, u.username 
+        SELECT r.*, u.username, ABS(r.rating - %s) as rating_diff
         FROM ratings r 
         JOIN users u ON r.user_id = u.id 
-        WHERE r.movie_id = %s AND r.rating = %s
-        ORDER BY r.timestamp DESC
+        WHERE r.movie_id = %s AND r.rating BETWEEN %s AND %s
+        ORDER BY rating_diff, r.timestamp DESC
         LIMIT %s OFFSET %s
         """
-        return self.execute_query(query, (movie_id, score, limit, offset))
+        return self.execute_query(query, (score, movie_id, lower_bound, upper_bound, limit, offset))
     
     def get_ratings_count_by_movie_id(self, movie_id):
         query = """
@@ -177,12 +210,18 @@ class DatabaseManager:
     
     def get_ratings_count_by_score(self, movie_id, score):
         """获取特定电影特定评分的评价总数"""
+        score = float(score)
+        
+        # 设置匹配区间
+        lower_bound = score - 0.5
+        upper_bound = score + 0.5
+        
         query = """
         SELECT COUNT(*) as count
         FROM ratings
-        WHERE movie_id = %s AND rating = %s
+        WHERE movie_id = %s AND rating BETWEEN %s AND %s
         """
-        result = self.execute_query(query, (movie_id, score))
+        result = self.execute_query(query, (movie_id, lower_bound, upper_bound))
         return result[0]['count'] if result else 0
     
     def get_diverse_ratings_by_movie_id(self, movie_id, limit=10):
