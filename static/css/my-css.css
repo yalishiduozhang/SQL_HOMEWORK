@@ -1,29 +1,42 @@
 /* 自定义样式 */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f5f5f5;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
 }
 
 .my-nav {
-    background-color: #1a1a1a;
+    background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
     color: white;
-    padding: 10px 20px;
+    padding: 15px 40px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 #logo a {
     color: #e50914;
     text-decoration: none;
-    font-size: 24px;
-    font-weight: bold;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transition: color 0.3s;
+}
+
+#logo a:hover {
+    color: #ff3d47;
 }
 
 #sub-navigation {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
 #sub-navigation ul {
@@ -34,16 +47,37 @@ body {
 }
 
 #sub-navigation ul li {
-    margin-right: 20px;
+    margin-right: 24px;
 }
 
 #sub-navigation ul li a {
-    color: white;
+    color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 5px 0;
+    position: relative;
+    transition: all 0.3s;
+}
+
+#sub-navigation ul li a:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    background: #e50914;
+    bottom: 0;
+    left: 0;
+    transition: width 0.3s;
 }
 
 #sub-navigation ul li a:hover {
-    color: #e50914;
+    color: #fff;
+}
+
+#sub-navigation ul li a:hover:after {
+    width: 100%;
 }
 
 #search {
@@ -52,61 +86,77 @@ body {
 }
 
 #search label {
-    margin-right: 10px;
-    color: white;
+    margin-right: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    font-weight: 500;
 }
 
 #search-field {
-    padding: 8px;
+    padding: 10px 15px;
     border: none;
-    border-radius: 3px;
-    width: 200px;
-    transition: width 0.3s;
+    border-radius: 30px;
+    width: 220px;
+    transition: all 0.3s;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
 }
 
 #search-field:focus {
-    width: 250px;
+    width: 280px;
     outline: none;
-    box-shadow: 0 0 4px rgba(229, 9, 20, 0.5);
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 6px rgba(229, 9, 20, 0.4);
+}
+
+#search-field::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .ml4-container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 30px 40px;
 }
 
 .frontpage-section {
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
 .frontpage-section-header {
-    margin-bottom: 10px;
+    margin-bottom: 20px;
+    position: relative;
 }
 
 .collection-label {
-    font-size: 24px;
-    font-weight: bold;
+    font-size: 26px;
+    font-weight: 600;
     color: #333;
+    padding-left: 12px;
+    border-left: 4px solid #e50914;
 }
 
 .collection-panel {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 25px;
+    margin: 0 -10px;
 }
 
 .movie-card {
     width: 200px;
     background-color: white;
-    border-radius: 5px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    margin: 10px;
 }
 
 .movie-card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .movie-card-link {
@@ -117,53 +167,88 @@ body {
 .poster-wrapper {
     height: 300px;
     overflow: hidden;
+    position: relative;
+}
+
+.poster-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.movie-card:hover .poster-wrapper::after {
+    opacity: 1;
 }
 
 .poster {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.movie-card:hover .poster {
+    transform: scale(1.05);
 }
 
 .movie-meta {
-    padding: 10px;
+    padding: 15px;
+    position: relative;
 }
 
 .title {
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #333;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #222;
+    font-size: 16px;
+    line-height: 1.3;
 }
 
 .rating {
     color: #e50914;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.rating::before {
+    content: '★';
+    margin-right: 4px;
 }
 
 .genres {
-    font-size: 12px;
-    color: #666;
+    font-size: 13px;
+    color: #777;
+    line-height: 1.4;
 }
 
 /* 电影详情页样式 */
 .movie-details {
     display: flex;
     background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
 }
 
 .movie-poster-col {
-    flex: 0 0 300px;
-    margin-right: 20px;
+    flex: 0 0 320px;
+    margin-right: 40px;
 }
 
 .detail-poster {
     width: 100%;
     height: auto;
-    border-radius: 5px;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 .movie-info-col {
@@ -172,39 +257,66 @@ body {
 
 .detail-title {
     margin-top: 0;
-    color: #333;
+    margin-bottom: 20px;
+    color: #222;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .detail-rating, .detail-genres, .detail-rating-count {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #555;
+}
+
+.detail-rating {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e50914;
+    display: flex;
+    align-items: center;
+}
+
+.detail-rating::before {
+    content: '★';
+    margin-right: 8px;
+    font-size: 22px;
 }
 
 .top-ratings-section {
     background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 
 .ratings-list {
-    margin-top: 10px;
+    margin-top: 15px;
 }
 
 /* 修改为表格布局，保持与ALL RATINGS一致 */
 #movieRatings {
-    margin-top: 10px;
-    margin-bottom: 20px;
+    margin-top: 15px;
+    margin-bottom: 25px;
 }
 
 .rating-item {
-    margin-bottom: 10px;
-    padding: 5px 0;
+    margin-bottom: 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid #eee;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.rating-item:hover {
+    background-color: #f9f9f9;
 }
 
 .rating-item a {
     color: #0066cc;
     text-decoration: none;
+    font-weight: 500;
 }
 
 .rating-item a:hover {
@@ -215,24 +327,24 @@ body {
 .user-info {
     display: flex;
     background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
 }
 
 .user-avatar {
-    flex: 0 0 100px;
-    margin-right: 20px;
+    flex: 0 0 120px;
+    margin-right: 30px;
 }
 
 .avatar-img {
     width: 100%;
-    height: 100px;
+    height: 120px;
     object-fit: cover;
     border-radius: 50%;
     border: 3px solid #e50914;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .user-details {
@@ -241,31 +353,38 @@ body {
 
 .user-title {
     margin-top: 0;
-    color: #333;
+    margin-bottom: 20px;
+    color: #222;
+    font-size: 28px;
+    font-weight: 600;
 }
 
 .user-avg-rating, .user-rating-range, .user-rating-count {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    color: #555;
+    font-size: 16px;
 }
 
 .ratings-table {
     width: 100%;
     border-collapse: collapse;
     background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
     overflow: hidden;
 }
 
 .ratings-table th, .ratings-table td {
-    padding: 10px;
+    padding: 15px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid #eee;
 }
 
 .ratings-table th {
-    background-color: #f2f2f2;
-    font-weight: bold;
+    background-color: #f6f6f6;
+    font-weight: 600;
+    color: #444;
+    font-size: 15px;
 }
 
 .ratings-table tr:hover {
@@ -275,6 +394,7 @@ body {
 .ratings-table a {
     color: #0066cc;
     text-decoration: none;
+    font-weight: 500;
 }
 
 .ratings-table a:hover {
@@ -289,10 +409,10 @@ body {
 
 .no-results {
     background-color: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    margin-top: 30px;
     text-align: center;
 }
 
@@ -312,32 +432,35 @@ body {
 }
 
 .rating-date {
-    font-size: 12px;
+    font-size: 13px;
     color: #999;
     font-style: italic;
-    margin-left: 5px;
+    margin-left: 8px;
 }
 
 /* 加载和分页样式 */
 .ratings-loading {
     text-align: center;
-    padding: 20px;
+    padding: 30px;
     font-style: italic;
-    color: #666;
+    color: #777;
     background-color: white;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 /* 评分行样式 - 添加可点击指示 */
 .rating-row-link {
     cursor: pointer;
-    transition: background-color 0.2s;
-    border-radius: 4px;
+    transition: all 0.3s;
+    border-radius: 8px;
+    padding: 2px;
+    margin-bottom: 10px;
 }
 
 .rating-row-link:hover {
     background-color: #fff3e0;
+    transform: translateX(5px);
 }
 
 .rating-row-link:hover .rating-bar {
@@ -354,9 +477,10 @@ body {
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
     opacity: 0;
     transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .rating-modal.show {
@@ -366,78 +490,196 @@ body {
 
 .rating-modal-content {
     background-color: #fff;
-    margin: 10% auto;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    max-width: 800px;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    max-width: 900px;
     position: relative;
+    transform: translateY(-20px);
+    transition: transform 0.3s;
+    animation: modal-slide-in 0.3s forwards;
+}
+
+@keyframes modal-slide-in {
+    0% {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .rating-modal-close {
     position: absolute;
-    top: 10px;
-    right: 20px;
+    top: 15px;
+    right: 25px;
     color: #aaa;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
     cursor: pointer;
+    transition: color 0.2s;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
 }
 
 .rating-modal-close:hover {
     color: #e50914;
+    background-color: rgba(229, 9, 20, 0.1);
 }
 
 .rating-modal-header {
-    margin-bottom: 20px;
-    padding-bottom: 10px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
     border-bottom: 1px solid #eee;
 }
 
 .rating-modal-header h3 {
     margin: 0;
     color: #333;
+    font-size: 24px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.rating-modal-header h3::before {
+    content: '★';
+    margin-right: 10px;
+    color: #e50914;
 }
 
 .rating-modal-body {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 .rating-modal-pagination {
-    margin-top: 20px;
-    padding-top: 10px;
+    margin-top: 25px;
+    padding-top: 15px;
     border-top: 1px solid #eee;
 }
 
 .pagination-controls {
-    margin-top: 15px;
+    margin-top: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .page-btn {
-    padding: 8px 15px;
-    margin: 0 5px;
+    padding: 10px 18px;
+    margin: 0 8px;
     border: none;
     background-color: #e50914;
     color: white;
-    border-radius: 3px;
+    border-radius: 30px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    font-weight: 500;
+    font-size: 14px;
 }
 
 .page-btn:hover {
-    background-color: #b2070f;
+    background-color: #c70812;
+    box-shadow: 0 2px 10px rgba(229, 9, 20, 0.4);
 }
 
 .page-btn.disabled {
     background-color: #ccc;
     cursor: not-allowed;
+    box-shadow: none;
+}
+
+.page-text {
+    margin: 0 5px;
+    color: #666;
+}
+
+.page-select {
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    margin: 0 8px;
+    font-size: 14px;
+    color: #555;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-select:hover, .page-select:focus {
+    border-color: #e50914;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.1);
 }
 
 .ratings-page-info {
-    margin-bottom: 10px;
-    font-weight: bold;
+    margin-bottom: 15px;
+    font-weight: 500;
     color: #555;
+    text-align: center;
+}
+
+/* 评分分布样式 */
+.ratings-distribution-section {
+    margin-top: 30px;
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.rating-distribution-container {
+    margin-top: 20px;
+}
+
+.rating-distribution-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.rating-label {
+    width: 60px;
+    text-align: right;
+    margin-right: 15px;
+    font-weight: 500;
+    color: #555;
+}
+
+.rating-bar-container {
+    flex-grow: 1;
+    background-color: #f0f0f0;
+    height: 24px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rating-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffad33 0%, #ff8c00 100%);
+    border-radius: 20px;
+    transition: width 0.5s, background-color 0.3s;
+}
+
+.rating-percentage {
+    width: 70px;
+    margin-left: 15px;
+    font-weight: 500;
+    color: #444;
+}
+
+.distribution-note {
+    font-size: 13px;
+    color: #777;
+    margin-top: 15px;
+    font-style: italic;
+    text-align: center;
 }
