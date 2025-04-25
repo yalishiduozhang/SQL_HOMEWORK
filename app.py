@@ -143,14 +143,44 @@ class DatabaseManager:
         result = self.execute_query(query, (user_id,))
         return result[0] if result else None
     
-    def get_ratings_by_movie_id(self, movie_id):
+    def get_ratings_by_movie_id(self, movie_id, limit=10, offset=0):
         query = """
         SELECT r.*, u.username 
         FROM ratings r 
         JOIN users u ON r.user_id = u.id 
         WHERE r.movie_id = %s
+        ORDER BY r.timestamp DESC
+        LIMIT %s OFFSET %s
         """
-        return self.execute_query(query, (movie_id,))
+        return self.execute_query(query, (movie_id, limit, offset))
+    
+    def get_ratings_count_by_movie_id(self, movie_id):
+        query = """
+        SELECT COUNT(*) as count
+        FROM ratings
+        WHERE movie_id = %s
+        """
+        result = self.execute_query(query, (movie_id,))
+        return result[0]['count'] if result else 0
+    
+    def get_diverse_ratings_by_movie_id(self, movie_id, limit=10):
+        """获取一个电影的多样化评分，包括高分和低分"""
+        query = """
+        (SELECT r.*, u.username 
+        FROM ratings r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE r.movie_id = %s AND r.rating = 5
+        ORDER BY r.timestamp DESC
+        LIMIT 5)
+        UNION
+        (SELECT r.*, u.username 
+        FROM ratings r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE r.movie_id = %s AND r.rating < 5
+        ORDER BY r.rating DESC, r.timestamp DESC
+        LIMIT 5)
+        """
+        return self.execute_query(query, (movie_id, movie_id))
     
     def get_ratings_by_user_id(self, user_id):
         query = """
@@ -633,6 +663,20 @@ def get_movie():
         movie_id = int(request.args.get('id'))
         movie = DataManager.get_instance().get_movie_by_id(movie_id)
         if movie:
+            # 尝试获取多样化的评分
+            db = DatabaseManager.get_instance()
+            diverse_ratings = db.get_diverse_ratings_by_movie_id(movie_id)
+            if diverse_ratings:
+                # 将多样化评分转换为Rating对象并添加到movie对象
+                movie.top_ratings = []
+                for rating_data in diverse_ratings:
+                    rating = Rating()
+                    rating.user_id = rating_data['user_id']
+                    rating.movie_id = rating_data['movie_id']
+                    rating.score = rating_data['rating']
+                    rating.timestamp = rating_data.get('timestamp', 0)
+                    movie.top_ratings.append(rating)
+            
             return jsonify(movie.to_dict())
         else:
             return jsonify({})
@@ -665,6 +709,29 @@ def get_similar_movie():
     except Exception as e:
         print(f"获取相似电影出错: {e}")
         return jsonify([])
+
+@app.route('/getmovieratings')
+def get_movie_ratings():
+    try:
+        movie_id = int(request.args.get('id'))
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('size', 10))
+        
+        offset = (page - 1) * page_size
+        
+        db = DatabaseManager.get_instance()
+        ratings = db.get_ratings_by_movie_id(movie_id, page_size, offset)
+        total_count = db.get_ratings_count_by_movie_id(movie_id)
+        
+        return jsonify({
+            'ratings': ratings,
+            'total': total_count,
+            'page': page,
+            'pages': math.ceil(total_count / page_size)
+        })
+    except Exception as e:
+        print(f"获取电影评分出错: {e}")
+        return jsonify({'ratings': [], 'total': 0, 'page': 1, 'pages': 0})
 
 @app.route('/getrecommendation')
 def get_recommendation():

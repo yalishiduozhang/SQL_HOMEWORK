@@ -163,42 +163,6 @@ function showMovieDetails(movie, container) {
     movieDetails.append(posterCol, infoCol);
     moviePanel.append(movieDetails);
 
-    // 添加顶级评分
-    if (movie.topRatings && movie.topRatings.length > 0) {
-        var ratingsSection = $("<div>", {
-            class: "top-ratings-section"
-        });
-
-        var ratingsTitle = $("<h3>", {
-            text: "Top Ratings"
-        });
-
-        var ratingsList = $("<div>", {
-            class: "ratings-list"
-        });
-
-        $.each(movie.topRatings, function (i, rating) {
-            var ratingItem = $("<div>", {
-                class: "rating-item"
-            });
-
-            var userLink = $("<a>", {
-                href: "user.html?id=" + rating.userId,
-                text: "User " + rating.userId + ": "
-            });
-
-            var score = $("<span>", {
-                text: rating.score.toFixed(1)
-            });
-
-            ratingItem.append(userLink, score);
-            ratingsList.append(ratingItem);
-        });
-
-        ratingsSection.append(ratingsTitle, ratingsList);
-        moviePanel.append(ratingsSection);
-    }
-
     if (movie.ratingNumber > 0) {
         var ratingsSection = $("<div>", {
             class: "ratings-distribution-section"
@@ -299,7 +263,6 @@ function showMovieDetails(movie, container) {
     function calculateNormalDistribution(x, mean, stdDev) {
         return Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
     }
-
 }
 
 /**
@@ -511,4 +474,152 @@ function showUserRatings(user, container) {
     
     // 渲染第一页
     renderPage(1);
+}
+
+/**
+ * 显示电影的所有评分
+ */
+function showAllMovieRatings(movieId, page) {
+    var ratingsContainer = $('#movieRatings');
+    var paginationContainer = $('#ratingsPagination');
+    
+    ratingsContainer.html('<div class="ratings-loading">Loading ratings...</div>');
+    
+    $.getJSON(baseUrl + 'getmovieratings?id=' + movieId + '&page=' + page, function(data) {
+        if (!data || !data.ratings || data.ratings.length === 0) {
+            ratingsContainer.html('<div class="no-results"><p>No ratings available for this movie.</p></div>');
+            return;
+        }
+        
+        ratingsContainer.empty();
+        
+        // 创建评分表格
+        var ratingsTable = $("<table>", {
+            class: "ratings-table"
+        });
+        
+        var tableHeader = $("<tr>", {
+            class: "table-header"
+        });
+        
+        tableHeader.append(
+            $("<th>", { text: "User" }),
+            $("<th>", { text: "Score" }),
+            $("<th>", { text: "Date" }),
+            $("<th>", { text: "Comment" })
+        );
+        
+        ratingsTable.append(tableHeader);
+        
+        // 添加评分行
+        $.each(data.ratings, function(i, rating) {
+            var ratingRow = $("<tr>");
+            
+            // 用户列
+            var userCell = $("<td>");
+            var userLink = $("<a>", {
+                href: "user.html?id=" + rating.user_id,
+                text: rating.username || ("User " + rating.user_id)
+            });
+            userCell.append(userLink);
+            
+            // 评分列
+            var scoreCell = $("<td>");
+            var scoreSpan = $("<span>", {
+                class: rating.rating === 5 ? "perfect-score" : "regular-score",
+                text: rating.rating + ".0"
+            });
+            scoreCell.append(scoreSpan);
+            
+            // 日期列
+            var dateCell = $("<td>");
+            if (rating.timestamp) {
+                var date = new Date(rating.timestamp * 1000);
+                dateCell.text(date.toLocaleDateString());
+            } else {
+                dateCell.text("Unknown");
+            }
+            
+            // 评论列
+            var commentCell = $("<td>");
+            commentCell.text(rating.comment || "");
+            
+            ratingRow.append(userCell, scoreCell, dateCell, commentCell);
+            ratingsTable.append(ratingRow);
+        });
+        
+        ratingsContainer.append(ratingsTable);
+        
+        // 创建分页控件
+        createPagination(data, paginationContainer, movieId);
+    }).fail(function() {
+        ratingsContainer.html('<div class="no-results"><p>Failed to load ratings. Please try again later.</p></div>');
+    });
+}
+
+/**
+ * 创建分页控件
+ */
+function createPagination(data, container, movieId) {
+    container.empty();
+    
+    if (data.pages <= 1) {
+        return;
+    }
+    
+    // 创建页码选择器
+    var pageSelect = $("<select>", {
+        class: "page-select"
+    }).change(function() {
+        showAllMovieRatings(movieId, parseInt($(this).val()));
+    });
+    
+    for (var p = 1; p <= data.pages; p++) {
+        var option = $("<option>", {
+            value: p,
+            text: "第 " + p + " 页",
+            selected: p === data.page
+        });
+        pageSelect.append(option);
+    }
+    
+    // 上一页按钮
+    var prevButton = $("<button>", {
+        text: "上一页",
+        class: "page-btn" + (data.page === 1 ? " disabled" : ""),
+        disabled: data.page === 1
+    }).click(function() {
+        if (data.page > 1) {
+            showAllMovieRatings(movieId, data.page - 1);
+        }
+    });
+    
+    // 下一页按钮
+    var nextButton = $("<button>", {
+        text: "下一页",
+        class: "page-btn" + (data.page === data.pages ? " disabled" : ""),
+        disabled: data.page === data.pages
+    }).click(function() {
+        if (data.page < data.pages) {
+            showAllMovieRatings(movieId, data.page + 1);
+        }
+    });
+    
+    // 显示总数信息
+    var pageInfo = $("<div>", {
+        class: "ratings-page-info",
+        text: "共 " + data.total + " 条评分，共 " + data.pages + " 页"
+    });
+    
+    // 组装分页控件
+    container.append(
+        pageInfo,
+        $("<div>", { class: "pagination-controls" }).append(
+            prevButton,
+            $("<span>", { text: " 页码: ", class: "page-text" }),
+            pageSelect,
+            $("<span>", { text: " / " + data.pages + " ", class: "page-text" }),
+            nextButton
+        )
+    );
 }
