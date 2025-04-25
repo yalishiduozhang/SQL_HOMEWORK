@@ -41,6 +41,14 @@
             <div class="frontpage" id="moviePage">
                 <div id="moviePanel" class="frontpage-section-top">
                 </div>
+                <div class="frontpage-section-top">
+                    <div class="label collection-label">ALL RATINGS</div>
+                </div>
+                <div id="movieRatings" class="collection-panel">
+                    <div class="ratings-loading">Loading ratings...</div>
+                </div>
+                <div id="ratingsPagination" class="pagination">
+                </div>
             </div>
             <div class="frontpage" id="recPage">
                 <div class="frontpage-section-top">
@@ -66,5 +74,8 @@ $.getJSON(baseUrl + 'getmovie?id=' + movieId, function (data) {
 $.getJSON(baseUrl + 'getsimilarmovie?movieId=' + movieId + '&size=12&model=' + model, function (data) {
     showMovies(data, '#similarMovies');
 });
+
+// 加载电影评分（初始加载第一页）
+showAllMovieRatings(movieId, 1);
 </script>
 </html> 
