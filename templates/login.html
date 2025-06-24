@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>登录 | MOVIE HUNTER</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link href="{{ url_for('static', filename='css/my-css.css') }}" rel="stylesheet"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .auth-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #e50914;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #e50914;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-submit:hover {
+            background: #c70812;
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+        
+        .btn-submit:disabled {
+            background: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .auth-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .auth-links a {
+            color: #e50914;
+            text-decoration: none;
+        }
+        
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body id="root">
+<div>
+    <div class="my-nav">
+        <h1 id="logo"><a href="/">MOVIE HUNTER</a></h1>
+        <div id="navigation">
+        </div>
+        <div id="sub-navigation">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/latest">最新电影</a></li>
+                <li><a href="/top-rated">高分电影</a></li>
+                <li><a href="/most-commented">热门评论</a></li>
+            </ul>
+            <div id="search">
+                <label for="search-field">搜索</label>
+                <form action="/search" method="get" style="display: inline;">
+                    <input type="text" name="q" placeholder="输入搜索内容" id="search-field" title="输入搜索内容" class="blink search-field" />
+                    <button type="submit" style="display:none;">搜索</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ml4-container" style="min-height: 600px;">
+        <div class="auth-container">
+            <h2 class="auth-title">用户登录</h2>
+            
+            <div id="alert-message" class="alert"></div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn-submit">登录</button>
+            </form>
+            
+            <div class="auth-links">
+                <p>还没有账号？<a href="/register">立即注册</a></p>
+                <p><a href="/">返回首页</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#login-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var submitBtn = $(this).find('button[type="submit"]');
+        var originalText = submitBtn.html();
+        
+        // 防止重复提交
+        if (submitBtn.prop('disabled')) {
+            return;
+        }
+        
+        var username = $('#username').val();
+        var password = $('#password').val();
+        
+        // 禁用按钮和输入框
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<span class="loading-spinner"></span>正在登录...');
+        $('#username, #password').prop('disabled', true);
+        
+        $.ajax({
+            url: '/login',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            success: function(response) {
+                if (response.success) {
+                    submitBtn.html('<span class="loading-spinner"></span>登录成功！');
+                    showMessage('登录成功！正在跳转...', 'success');
+                    setTimeout(function() {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    showMessage(response.message, 'error');
+                    // 恢复按钮
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html(originalText);
+                    $('#username, #password').prop('disabled', false);
+                }
+            },
+            error: function() {
+                showMessage('登录失败，请重试', 'error');
+                // 恢复按钮
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+                $('#username, #password').prop('disabled', false);
+            }
+        });
+    });
+    
+    function showMessage(message, type) {
+        var alertDiv = $('#alert-message');
+        alertDiv.removeClass('alert-success alert-error');
+        alertDiv.addClass('alert-' + type);
+        alertDiv.text(message);
+        alertDiv.show();
+        
+        setTimeout(function() {
+            alertDiv.fadeOut();
+        }, 3000);
+    }
+});
+</script>
+
+</body>
+</html>

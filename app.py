@@ -1,14 +1,25 @@
-from flask import Flask, jsonify, request, render_template, redirect
+from flask import Flask, jsonify, request, render_template, redirect, session, url_for, flash
 import os
-import json
 import math
-import numpy as np
 from collections import defaultdict
 import mysql.connector
 from mysql.connector import Error
 import getpass
+import hashlib
+from datetime import datetime
+import secrets
+import decimal
+from PIL import Image
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
+app.secret_key = secrets.token_hex(16)  # 生成随机密钥用于session
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 限制上传文件大小为5MB
+
+# 允许的图片扩展名
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 class DatabaseManager:
     _instance = None
@@ -68,6 +79,10 @@ class DatabaseManager:
             result = cursor.fetchall()
             cursor.close()
             connection.close()
+            for row in result:
+                for key, value in row.items():
+                    if isinstance(value, decimal.Decimal):
+                        row[key] = float(value)
             return result
         except Error as e:
             print(f"执行查询时出错: {e}")
@@ -89,12 +104,14 @@ class DatabaseManager:
             else:
                 cursor.execute(query)
             connection.commit()
+            affected_rows = cursor.rowcount
+            last_insert_id = cursor.lastrowid
             cursor.close()
             connection.close()
-            return True
+            return True, last_insert_id
         except Error as e:
             print(f"执行更新时出错: {e}")
-            return False
+            return False, None
     
     def get_all_movies(self):
         query = "SELECT * FROM movies"
@@ -146,6 +163,33 @@ class DatabaseManager:
         query = "SELECT * FROM users WHERE id = %s"
         result = self.execute_query(query, (user_id,))
         return result[0] if result else None
+    
+    def get_user_by_username(self, username):
+        query = "SELECT * FROM users WHERE username = %s"
+        result = self.execute_query(query, (username,))
+        return result[0] if result else None
+    
+    def check_user_rating(self, user_id, movie_id):
+        query = "SELECT * FROM ratings WHERE user_id = %s AND movie_id = %s"
+        result = self.execute_query(query, (user_id, movie_id))
+        return result[0] if result else None
+    
+    def update_rating(self, user_id, movie_id, rating, comment):
+        # 确保评分是0.5的倍数
+        rating = round(rating * 2) / 2
+        query = """
+        UPDATE ratings 
+        SET rating = %s, comment = %s, timestamp = %s 
+        WHERE user_id = %s AND movie_id = %s
+        """
+        timestamp = int(datetime.now().timestamp())
+        success, _ = self.execute_update(query, (rating, comment, timestamp, user_id, movie_id))
+        
+        if success:
+            # 更新电影的平均评分
+            self.update_movie_rating(movie_id)
+            
+        return success
     
     def get_ratings_by_movie_id(self, movie_id, limit=10, offset=0):
         query = """
@@ -264,22 +308,83 @@ class DatabaseManager:
         """
         return self.execute_query(query)   
     
-    def add_movie(self, title, year, director, genre, rating, poster_url, description):
+    def add_movie(self, title, year, genre, rating=0, description=''):
         query = """
-        INSERT INTO movies (title, year, director, genre, rating, poster_url, description) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO movies (title, year, genre, rating, description) 
+        VALUES (%s, %s, %s, %s, %s)
         """
-        return self.execute_update(query, (title, year, director, genre, rating, poster_url, description))
+        return self.execute_update(query, (title, year, genre, rating, description))
     
     def add_user(self, username, password, email):
+        # 对密码进行MD5加密
+        hashed_password = hashlib.md5(password.encode()).hexdigest()
         query = "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)"
-        return self.execute_update(query, (username, password, email))
+        return self.execute_update(query, (username, hashed_password, email))
     
-    def add_rating(self, user_id, movie_id, rating, comment):
-        query = "INSERT INTO ratings (user_id, movie_id, rating, comment) VALUES (%s, %s, %s, %s)"
-        return self.execute_update(query, (user_id, movie_id, rating, comment))
+    def add_rating(self, user_id, movie_id, rating, comment=''):
+        # 确保评分是0.5的倍数
+        rating = round(rating * 2) / 2
+        timestamp = int(datetime.now().timestamp())
+        query = "INSERT INTO ratings (user_id, movie_id, rating, comment, timestamp) VALUES (%s, %s, %s, %s, %s)"
+        success, _ = self.execute_update(query, (user_id, movie_id, rating, comment, timestamp))
+        
+        if success:
+            # 更新电影的平均评分
+            self.update_movie_rating(movie_id)
+        
+        return success
+    
+    def update_movie_rating(self, movie_id):
+        """更新电影的平均评分"""
+        query = """
+        UPDATE movies m
+        SET rating = (
+            SELECT AVG(rating)
+            FROM ratings r
+            WHERE r.movie_id = m.id
+        )
+        WHERE m.id = %s
+        """
+        return self.execute_update(query, (movie_id,))
 
-    def get_movie_embedding(self, movie_id):
+    def get_rating_distribution(self, movie_id):
+        """获取电影的评分分布"""
+        query = """
+        SELECT 
+            CASE 
+                WHEN rating = 0.5 THEN '0.5'
+                WHEN rating = 1 THEN '1'
+                WHEN rating = 1.5 THEN '1.5'
+                WHEN rating = 2 THEN '2'
+                WHEN rating = 2.5 THEN '2.5'
+                WHEN rating = 3 THEN '3'
+                WHEN rating = 3.5 THEN '3.5'
+                WHEN rating = 4 THEN '4'
+                WHEN rating = 4.5 THEN '4.5'
+                WHEN rating = 5 THEN '5'
+                ELSE CAST(rating AS CHAR)
+            END as rating_level,
+            COUNT(*) as count
+        FROM ratings
+        WHERE movie_id = %s
+        GROUP BY rating
+        ORDER BY rating DESC
+        """
+        results = self.execute_query(query, (movie_id,))
+        
+        # 初始化所有评分级别
+        distribution = {
+            '5': 0, '4.5': 0, '4': 0, '3.5': 0, '3': 0,
+            '2.5': 0, '2': 0, '1.5': 0, '1': 0, '0.5': 0
+        }
+        
+        # 填充实际数据
+        for row in results:
+            rating_level = row['rating_level']
+            if rating_level in distribution:
+                distribution[rating_level] = row['count']
+        
+        return distribution
         query = "SELECT embedding FROM movie_embeddings WHERE movie_id = %s"
         result = self.execute_query(query, (movie_id,))
         return result[0]['embedding'] if result else None
@@ -342,7 +447,8 @@ class DataManager:
             movie.genres = []
             if movie_data['genre']:
                 movie.genres = [g.strip() for g in movie_data['genre'].split(',')]
-            movie.rating = movie_data['rating']
+            movie.rating = float(movie_data['rating']) if movie_data['rating'] else 0.0
+            movie.average_rating = movie.rating
             movie.poster_url = movie_data['poster_url']
             movie.description = movie_data['description']
             
@@ -378,7 +484,7 @@ class DataManager:
                 rating = Rating()
                 rating.user_id = rating_data['user_id']
                 rating.movie_id = rating_data['movie_id']
-                rating.score = rating_data['rating']
+                rating.score = float(rating_data['rating']) if rating_data['rating'] else 0.0
                 rating.comment = rating_data['comment']
                 rating.title = rating_data['title']
                 rating.timestamp = rating_data['timestamp']
@@ -388,81 +494,6 @@ class DataManager:
                 if rating.movie_id in self.movie_map:
                     movie = self.movie_map[rating.movie_id]
                     movie.add_rating(rating)
-
-    
-    # def load_movie_data(self, movie_data_path):
-    #     print(f"从 {movie_data_path} 加载电影数据...")
-    #     with open(movie_data_path, 'r', encoding='utf-8') as file:
-    #         reader = csv.reader(file)
-    #         next(reader)
-    #         for row in reader:
-    #             if len(row) == 3:
-    #                 movie = Movie()
-    #                 movie.movie_id = int(row[0])
-                    
-    #                 title = row[1].strip()
-    #                 release_year = self.parse_release_year(title)
-    #                 if release_year == -1:
-    #                     movie.title = title
-    #                 else:
-    #                     movie.release_year = release_year
-    #                     movie.title = title[:-6].strip()
-                    
-    #                 genres = row[2]
-    #                 if genres.strip():
-    #                     for genre in genres.split('|'):
-    #                         movie.genres.append(genre)
-    #                         self.add_movie_to_genre_index(genre, movie)
-                    
-    #                 self.movie_map[movie.movie_id] = movie
-        
-    #     print(f"电影数据加载完成，共 {len(self.movie_map)} 部电影")
-    
-    # def load_link_data(self, link_data_path):
-    #     print(f"从 {link_data_path} 加载链接数据...")
-    #     count = 0
-    #     with open(link_data_path, 'r', encoding='utf-8') as file:
-    #         reader = csv.reader(file)
-    #         next(reader)
-    #         for row in reader:
-    #             if len(row) == 3:
-    #                 movie_id = int(row[0])
-    #                 movie = self.movie_map.get(movie_id)
-    #                 if movie:
-    #                     count += 1
-    #                     movie.imdb_id = row[1].strip()
-    #                     movie.tmdb_id = row[2].strip()
-    #     print(f"链接数据加载完成，共更新 {count} 部电影")
-    
-    # def load_rating_data(self, rating_data_path):
-    #     print(f"从 {rating_data_path} 加载评分数据...")
-    #     with open(rating_data_path, 'r', encoding='utf-8') as file:
-    #         reader = csv.reader(file)
-    #         next(reader)
-    #         for row in reader:
-    #             if len(row) == 4:
-    #                 user_id = int(row[0])
-    #                 movie_id = int(row[1])
-    #                 score = float(row[2])
-    #                 timestamp = int(row[3])
-                    
-    #                 if user_id not in self.user_map:
-    #                     self.user_map[user_id] = User()
-    #                     self.user_map[user_id].user_id = user_id
-                    
-    #                 movie = self.movie_map.get(movie_id)
-    #                 if movie:
-    #                     rating = Rating()
-    #                     rating.user_id = user_id
-    #                     rating.movie_id = movie_id
-    #                     rating.score = score
-    #                     rating.timestamp = timestamp
-    #                     rating.title = movie.title
-                        
-    #                     self.user_map[user_id].add_rating(rating)
-    #                     movie.add_rating(rating)
-        
-    #     print(f"评分数据加载完成，共 {len(self.user_map)} 个用户")
     
     def load_movie_emb_from_db(self):
         print("从数据库加载电影嵌入向量...")
@@ -554,6 +585,13 @@ class DataManager:
             except ValueError:
                 continue
         return result
+    
+    def refresh_data(self):
+        """刷新数据（用于添加新电影后）"""
+        self.movie_map.clear()
+        self.user_map.clear()
+        self.genre_reverse_index_map.clear()
+        self.load_data_from_db()
 
 class Movie:
     def __init__(self):
@@ -564,7 +602,7 @@ class Movie:
         self.tmdb_id = ""
         self.genres = []
         self.rating_number = 0
-        self.average_rating = 0
+        self.average_rating = 0.0
         self.emb = None
         self.ratings = []
         self.top_ratings = []
@@ -606,8 +644,8 @@ class Movie:
 class User:
     def __init__(self):
         self.user_id = 0
-        self.average_rating = 0
-        self.highest_rating = 0
+        self.average_rating = 0.0
+        self.highest_rating = 0.0
         self.lowest_rating = 5.0
         self.rating_count = 0
         self.ratings = []
@@ -736,6 +774,239 @@ class SimilarMovieProcess:
         
         return movie.emb.calculate_similarity(candidate.emb)
 
+# 登录注册相关路由
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': '用户名和密码不能为空'})
+        
+        db = DatabaseManager.get_instance()
+        user = db.get_user_by_username(username)
+        
+        if user:
+            # 验证密码
+            hashed_password = hashlib.md5(password.encode()).hexdigest()
+            if user['password'] == hashed_password:
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                return jsonify({'success': True, 'message': '登录成功'})
+            else:
+                return jsonify({'success': False, 'message': '密码错误'})
+        else:
+            return jsonify({'success': False, 'message': '用户不存在'})
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        
+        if not username or not password or not email:
+            return jsonify({'success': False, 'message': '所有字段都必须填写'})
+        
+        db = DatabaseManager.get_instance()
+        
+        # 检查用户名是否已存在
+        existing_user = db.get_user_by_username(username)
+        if existing_user:
+            return jsonify({'success': False, 'message': '用户名已存在'})
+        
+        # 添加新用户
+        success, user_id = db.add_user(username, password, email)
+        if success:
+            # 刷新数据
+            DataManager.get_instance().refresh_data()
+            return jsonify({'success': True, 'message': '注册成功，请登录'})
+        else:
+            return jsonify({'success': False, 'message': '注册失败，请重试'})
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/add_movie', methods=['GET', 'POST'])
+def add_movie():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        year = request.form.get('year')
+        genre = request.form.get('genre')
+        description = request.form.get('description', '')
+        
+        if not title or not year or not genre:
+            return jsonify({'success': False, 'message': '电影名称、年份和类型为必填项'})
+        
+        try:
+            year = int(year)
+        except ValueError:
+            return jsonify({'success': False, 'message': '年份必须是数字'})
+        
+        # 验证类型是否合法
+        ALLOWED_GENRES = {
+            'Action', 'Adventure', 'Animation', 'Children', 'Comedy', 
+            'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 
+            'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 
+            'Thriller', 'War', 'Western'
+        }
+        
+        # 分割并验证每个类型
+        genres = [g.strip() for g in genre.split(',')]
+        invalid_genres = [g for g in genres if g not in ALLOWED_GENRES]
+        
+        if invalid_genres:
+            return jsonify({
+                'success': False, 
+                'message': f'不支持的电影类型: {", ".join(invalid_genres)}'
+            })
+        
+        # 重新组合类型字符串
+        genre = ','.join(genres)
+        
+        db = DatabaseManager.get_instance()
+        success, movie_id = db.add_movie(title, year, genre, 0, description)
+        
+        if success:
+            # 处理图片上传
+            if 'poster' in request.files:
+                file = request.files['poster']
+                if file and allowed_file(file.filename):
+                    try:
+                        # 创建posters目录（如果不存在）
+                        posters_dir = os.path.join(app.static_folder, 'posters')
+                        if not os.path.exists(posters_dir):
+                            os.makedirs(posters_dir)
+                        
+                        # 保存并处理图片
+                        filename = f"{movie_id}.jpg"
+                        filepath = os.path.join(posters_dir, filename)
+                        
+                        # 使用PIL处理图片
+                        img = Image.open(file.stream)
+                        
+                        # 转换为RGB（如果是PNG或其他格式）
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        
+                        # 调整大小（保持纵横比，宽度最大300px）
+                        max_width = 300
+                        if img.width > max_width:
+                            ratio = max_width / img.width
+                            new_height = int(img.height * ratio)
+                            img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+                        
+                        # 保存为JPEG
+                        img.save(filepath, 'JPEG', quality=85, optimize=True)
+                        
+                    except Exception as e:
+                        print(f"保存图片时出错: {e}")
+                        # 图片保存失败不影响电影添加
+            
+            # 刷新数据
+            DataManager.get_instance().refresh_data()
+            return jsonify({'success': True, 'message': '电影添加成功', 'movieId': movie_id})
+        else:
+            return jsonify({'success': False, 'message': '添加失败，请重试'})
+    
+    return render_template('add_movie.html')
+
+@app.route('/rate_movie', methods=['POST'])
+def rate_movie():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '请先登录'})
+    
+    data = request.get_json()
+    movie_id = data.get('movieId')
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+    
+    if not movie_id or not rating:
+        return jsonify({'success': False, 'message': '电影ID和评分不能为空'})
+    
+    try:
+        movie_id = int(movie_id)
+        rating = float(rating)
+        # 确保评分在0.5-5.0之间，且是0.5的倍数
+        if rating < 0.5 or rating > 5:
+            return jsonify({'success': False, 'message': '评分必须在0.5-5之间'})
+        if (rating * 2) % 1 != 0:  # 检查是否是0.5的倍数
+            return jsonify({'success': False, 'message': '评分必须是0.5的倍数'})
+    except ValueError:
+        return jsonify({'success': False, 'message': '无效的数据格式'})
+    
+    user_id = session['user_id']
+    db = DatabaseManager.get_instance()
+    
+    # 检查是否已经评分
+    existing_rating = db.check_user_rating(user_id, movie_id)
+    
+    if existing_rating:
+        # 更新评分
+        success = db.update_rating(user_id, movie_id, rating, comment)
+        message = '评分更新成功' if success else '更新失败，请重试'
+    else:
+        # 添加新评分
+        success = db.add_rating(user_id, movie_id, rating, comment)
+        message = '评分成功' if success else '评分失败，请重试'
+    
+    if success:
+        # 刷新数据
+        DataManager.get_instance().refresh_data()
+    
+    return jsonify({'success': success, 'message': message})
+
+@app.route('/get_user_rating')
+def get_user_rating():
+    if 'user_id' not in session:
+        return jsonify({'hasRated': False})
+    
+    movie_id = request.args.get('movieId')
+    if not movie_id:
+        return jsonify({'hasRated': False})
+    
+    try:
+        movie_id = int(movie_id)
+    except ValueError:
+        return jsonify({'hasRated': False})
+    
+    user_id = session['user_id']
+    db = DatabaseManager.get_instance()
+    
+    rating = db.check_user_rating(user_id, movie_id)
+    if rating:
+        return jsonify({
+            'hasRated': True,
+            'rating': rating['rating'],
+            'comment': rating.get('comment', '')
+        })
+    else:
+        return jsonify({'hasRated': False})
+
+@app.route('/get_session_info')
+def get_session_info():
+    if 'user_id' in session:
+        return jsonify({
+            'loggedIn': True,
+            'userId': session['user_id'],
+            'username': session['username']
+        })
+    else:
+        return jsonify({'loggedIn': False})
+
+# 原有路由
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -760,12 +1031,41 @@ def get_movie():
                     rating.timestamp = rating_data.get('timestamp', 0)
                     movie.top_ratings.append(rating)
             
-            return jsonify(movie.to_dict())
+            # 获取真实的评分分布
+            rating_distribution = db.get_rating_distribution(movie_id)
+            movie_dict = movie.to_dict()
+            movie_dict['ratingDistribution'] = rating_distribution
+            
+            return jsonify(movie_dict)
         else:
             return jsonify({})
     except Exception as e:
         print(f"获取电影信息出错: {e}")
         return jsonify({})
+
+@app.route('/get_rating_distribution')
+def get_rating_distribution():
+    try:
+        movie_id = int(request.args.get('movieId'))
+        db = DatabaseManager.get_instance()
+        distribution = db.get_rating_distribution(movie_id)
+        
+        # 计算总数和百分比
+        total = sum(distribution.values())
+        if total > 0:
+            distribution_percentage = {k: (v / total * 100) for k, v in distribution.items()}
+        else:
+            distribution_percentage = distribution
+            
+        return jsonify({
+            'success': True,
+            'distribution': distribution,
+            'distributionPercentage': distribution_percentage,
+            'total': total
+        })
+    except Exception as e:
+        print(f"获取评分分布出错: {e}")
+        return jsonify({'success': False, 'message': '获取评分分布失败'})
 
 @app.route('/getuser')
 def get_user():
@@ -866,19 +1166,19 @@ def user_page():
 def latest_trailers():
     db = DatabaseManager.get_instance()
     latest_movies = db.get_latest_movies(16)
-    return render_template('index.html', page_title="Latest Trailers", movies=latest_movies)
+    return render_template('index.html', page_title="最新电影", movies=latest_movies)
 
 @app.route('/top-rated')
 def top_rated():
     db = DatabaseManager.get_instance()
     top_movies = db.get_top_rated_movies(16)
-    return render_template('index.html', page_title="Top Rated Movies", movies=top_movies)
+    return render_template('index.html', page_title="高分电影", movies=top_movies)
 
 @app.route('/most-commented')
 def most_commented():
     db = DatabaseManager.get_instance()
     commented_movies = db.get_most_commented_movies(16)
-    return render_template('index.html', page_title="Most Commented Movies", movies=commented_movies)
+    return render_template('index.html', page_title="热门评论", movies=commented_movies)
 
 @app.route('/search')
 def search():
@@ -889,10 +1189,10 @@ def search():
     db = DatabaseManager.get_instance()
     search_results = db.search_movies(keyword)
     return render_template('index.html', 
-                          page_title=f"Search Results for '{keyword}'", 
+                          page_title=f"搜索结果：'{keyword}'", 
                           movies=search_results,
                           search_term=keyword)
 
 if __name__ == '__main__':
     DataManager.get_instance()
-    app.run(host='0.0.0.0', port=6010, debug=False) 
+    app.run(host='0.0.0.0', port=6010, debug=False)

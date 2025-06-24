@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-    <title>{% if page_title %}{{ page_title }}{% else %}Home{% endif %} | Movie Hunter</title>
+    <title>{% if page_title %}{{ page_title }}{% else %}首页{% endif %} | MOVIE HUNTER</title>
     <meta name="description" content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#ffffff"/>
@@ -17,21 +17,24 @@
 <body id="root">
 <div>
     <div class="my-nav">
-        <h1 id="logo"><a href="#">Movie Hunter</a></h1>
+        <h1 id="logo"><a href="/">MOVIE HUNTER</a></h1>
         <div id="navigation">
         </div>
         <div id="sub-navigation">
             <ul>
-                <li><a href="/">HOME</a></li>
-                <li><a href="/latest">LATEST TRAILERS</a></li>
-                <li><a href="/top-rated">TOP RATED</a></li>
-                <li><a href="/most-commented">MOST COMMENTED</a></li>
+                <li><a href="/">首页</a></li>
+                <li><a href="/latest">最新电影</a></li>
+                <li><a href="/top-rated">高分电影</a></li>
+                <li><a href="/most-commented">热门评论</a></li>
+                <li><a href="/add_movie">添加电影</a></li>
+                <li id="nav-username"></li>
+                <li id="nav-logout"></li>
             </ul>
             <div id="search">
-                    <label for="search-field">SEARCH</label>
+                    <label for="search-field">搜索</label>
                     <form action="/search" method="get" style="display: inline;">
-                        <input type="text" name="q" placeholder="Enter search here" id="search-field" title="Enter search here" class="blink search-field" value="{{ search_term if search_term else '' }}" />
-                        <button type="submit" style="display:none;">Search</button>
+                        <input type="text" name="q" placeholder="输入搜索内容" id="search-field" title="输入搜索内容" class="blink search-field" value="{{ search_term if search_term else '' }}" />
+                        <button type="submit" style="display:none;">搜索</button>
                     </form>
             </div>
         </div>
@@ -59,8 +62,35 @@
                             </div>
                             <div class="movie-meta">
                                 <div class="title">{{ movie.title }} {% if movie.year %}({{ movie.year }}){% endif %}</div>
-                                <div class="rating">{% if movie.rating %}{{ movie.rating }}{% else %}N/A{% endif %}</div>
-                                <div class="genres">{{ movie.genre }}</div>
+                                <div class="rating">{% if movie.rating %}{{ movie.rating }}{% else %}暂无评分{% endif %}</div>
+                                <div class="genres">
+                                    {% if movie.genre %}
+                                        {% set genre_map = {
+                                            'Action': '动作',
+                                            'Adventure': '冒险',
+                                            'Animation': '动画',
+                                            'Children': '儿童',
+                                            'Comedy': '喜剧',
+                                            'Crime': '犯罪',
+                                            'Documentary': '纪录片',
+                                            'Drama': '剧情',
+                                            'Fantasy': '奇幻',
+                                            'Film-Noir': '黑色电影',
+                                            'Horror': '恐怖',
+                                            'Musical': '音乐',
+                                            'Mystery': '悬疑',
+                                            'Romance': '爱情',
+                                            'Sci-Fi': '科幻',
+                                            'Thriller': '惊悚',
+                                            'War': '战争',
+                                            'Western': '西部'
+                                        } %}
+                                        {% set genres = movie.genre.split(',') %}
+                                        {% for genre in genres %}
+                                            {{ genre_map.get(genre.strip(), genre.strip()) }}{% if not loop.last %}、{% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </a>
                     </div>
@@ -68,7 +98,7 @@
                 </div>
                 {% elif search_term %}
                 <div class="no-results">
-                    <p>No movies found matching "{{ search_term }}". Try different keywords.</p>
+                    <p>未找到包含 "{{ search_term }}" 的电影。请尝试其他关键词。</p>
                 </div>
                 {% endif %}
             </div>
@@ -80,8 +110,21 @@
 <script type="text/javascript">
 var baseUrl = window.location.protocol + "//" + window.location.host + "/";
 
+// 检查登录状态
+$(document).ready(function() {
+    $.get('/get_session_info', function(data) {
+        if (data.loggedIn) {
+            $('#nav-username').html('<a href="/user.html?id=' + data.userId + '">欢迎，' + data.username + '</a>');
+            $('#nav-logout').html('<a href="/logout">退出</a>');
+        } else {
+            $('#nav-username').html('<a href="/login">登录</a>');
+            $('#nav-logout').html('<a href="/register">注册</a>');
+        }
+    });
+});
+
 {% if not movies %}
-    // 首页默认内容
+// 首页默认内容
 addGenreRow('#recPage', 'Action', 'action-collection', 8, baseUrl);
 addGenreRow('#recPage', 'Romance', 'romance-collection', 8, baseUrl);
 addGenreRow('#recPage', 'Thriller', 'thriller-collection', 8, baseUrl);
@@ -90,4 +133,4 @@ addGenreRow('#recPage', 'Drama', 'drama-collection', 8, baseUrl);
 addGenreRow('#recPage', 'Adventure', 'adventure-collection', 8, baseUrl);
 {% endif %}
 </script>
-</html> 
+</html>

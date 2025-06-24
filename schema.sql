@@ -38,16 +38,16 @@ CREATE TABLE IF NOT EXISTS user_embeddings (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- 创建评分表
+-- 创建评分表（支持半星评分）
 CREATE TABLE IF NOT EXISTS ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     movie_id INT NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    rating DECIMAL(2,1) NOT NULL CHECK (rating >= 0.5 AND rating <= 5.0),
     comment TEXT,
     timestamp INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (movie_id) REFERENCES movies(id),
     UNIQUE KEY unique_user_movie (user_id, movie_id)
-); 
+);
