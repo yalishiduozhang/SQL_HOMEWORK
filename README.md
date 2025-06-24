@@ -162,8 +162,8 @@ python init_db.py
 python app.py
 ```
 
-5. 按提示输入MySQL数据库密码
-6. 然后在浏览器中访问：http://localhost:6010
+1. 按提示输入MySQL数据库密码
+2. 然后在浏览器中访问：http://localhost:6010
 
 ## 数据导入说明
 
