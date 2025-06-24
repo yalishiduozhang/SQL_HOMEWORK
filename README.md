@@ -76,7 +76,6 @@ numpy>=1.21.0
 pandas>=1.3.0
 mysql-connector-python>=8.0.22
 pillow>=8.0.0
-werkzeug>=2.0.0
 ```
 
 ## � 快速开始
