@@ -7,7 +7,6 @@ import time
 import sys
 
 def wait_for_mysql(host, port, user, password, database, max_retries=30):
-    """等待 MySQL 服务就绪"""
     print("等待 MySQL 服务启动...")
     retries = 0
     while retries < max_retries:
@@ -32,15 +31,12 @@ def wait_for_mysql(host, port, user, password, database, max_retries=30):
     return False
 
 def connect_to_database():
-    """连接到数据库"""
-    # 从环境变量获取数据库配置
     host = os.getenv('MYSQL_HOST', 'mysql')
     port = int(os.getenv('MYSQL_PORT', '3306'))
     user = os.getenv('MYSQL_USER', 'moviehunter_user')
     password = os.getenv('MYSQL_PASSWORD', 'moviehunter_password')
     database = os.getenv('MYSQL_DATABASE', 'moviehunter')
     
-    # 等待 MySQL 服务就绪
     if not wait_for_mysql(host, port, user, password, database):
         return None
     
@@ -60,19 +56,15 @@ def connect_to_database():
         return None
 
 def check_data_exists(connection):
-    """检查数据是否已经存在"""
     try:
         cursor = connection.cursor()
         
-        # 检查电影数据
         cursor.execute("SELECT COUNT(*) FROM movies")
         movie_count = cursor.fetchone()[0]
         
-        # 检查用户数据
         cursor.execute("SELECT COUNT(*) FROM users")
         user_count = cursor.fetchone()[0]
         
-        # 检查评分数据
         cursor.execute("SELECT COUNT(*) FROM ratings")
         rating_count = cursor.fetchone()[0]
         
@@ -83,7 +75,6 @@ def check_data_exists(connection):
         print(f"- 用户数量: {user_count}")
         print(f"- 评分数量: {rating_count}")
         
-        # 如果数据已存在，询问是否重新导入
         if movie_count > 0 or user_count > 0 or rating_count > 0:
             return True
         return False
@@ -93,7 +84,6 @@ def check_data_exists(connection):
         return False
 
 def import_movie_data(connection, movie_data_path):
-    """导入电影数据"""
     try:
         cursor = connection.cursor()
         print(f"\n→ 正在导入电影数据: {movie_data_path}")
@@ -109,7 +99,7 @@ def import_movie_data(connection, movie_data_path):
             
         with open(movie_data_path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
-            next(reader)  # 跳过标题行
+            next(reader)
             
             for row in reader:
                 if len(row) == 3:
@@ -117,7 +107,6 @@ def import_movie_data(connection, movie_data_path):
                         movie_id = int(row[0])
                         title = row[1].strip()
                         
-                        # 提取发行年份
                         release_year = -1
                         if '(' in title and ')' in title:
                             year_start = title.rfind('(')
@@ -144,7 +133,6 @@ def import_movie_data(connection, movie_data_path):
                     except Exception as e:
                         print(f"处理电影数据出错: {e}")
         
-        # 插入剩余的数据
         if movie_batch:
             inserted = batch_insert_movies(cursor, movie_batch)
             successful_count += inserted
@@ -157,7 +145,6 @@ def import_movie_data(connection, movie_data_path):
         return False
 
 def batch_insert_movies(cursor, movie_batch):
-    """批量插入电影数据"""
     try:
         query = """
         INSERT IGNORE INTO movies (id, title, year, genre, rating, description) 
@@ -181,7 +168,6 @@ def batch_insert_movies(cursor, movie_batch):
         return successful
 
 def import_rating_data(connection, rating_data_path):
-    """导入评分数据"""
     try:
         cursor = connection.cursor()
         print(f"\n→ 正在导入评分数据: {rating_data_path}")
@@ -190,7 +176,6 @@ def import_rating_data(connection, rating_data_path):
             print(f"✗ 错误: 评分数据文件 {rating_data_path} 不存在")
             return False
 
-        # 创建测试用户账号
         test_accounts = [
             (999999, "test", "123456", "test@example.com")
         ]
@@ -205,7 +190,6 @@ def import_rating_data(connection, rating_data_path):
         except Error as e:
             print(f"✗ 创建测试用户出错: {e}")
 
-        # 批量处理数据
         user_batch_size = 2000
         rating_batch_size = 10000
 
@@ -224,8 +208,7 @@ def import_rating_data(connection, rating_data_path):
         print("\n→ 开始逐行处理和批量导入...")
         with open(rating_data_path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
-            next(reader)  # 跳过标题行
-            
+            next(reader)
             for row in reader:
                 if len(row) == 4:
                     try:
@@ -234,7 +217,6 @@ def import_rating_data(connection, rating_data_path):
                         rating = float(row[2])
                         timestamp = int(row[3])
                         
-                        # 添加用户（如果尚未处理）
                         if user_id not in processed_users:
                             username = f"user_{user_id}"
                             email = f"user_{user_id}@example.com"
@@ -247,7 +229,6 @@ def import_rating_data(connection, rating_data_path):
                                 connection.commit()
                                 user_batch = []
                         
-                        # 添加评分
                         rating_batch.append((user_id, movie_id, rating, timestamp))
                         total_ratings_processed += 1
                         
@@ -261,7 +242,6 @@ def import_rating_data(connection, rating_data_path):
                     except (ValueError, IndexError) as e:
                         print(f"处理评分数据出错: {e}")
         
-        # 插入剩余数据
         if user_batch:
             cursor.executemany(user_query, user_batch)
             total_users_created += cursor.rowcount
@@ -281,12 +261,10 @@ def import_rating_data(connection, rating_data_path):
         return False
 
 def import_embeddings(connection, movie_emb_path, user_emb_path):
-    """导入嵌入向量数据"""
     try:
         cursor = connection.cursor()
         print("\n→ 正在导入嵌入向量数据...")
         
-        # 导入电影嵌入向量
         if os.path.exists(movie_emb_path):
             movie_count = 0
             with open(movie_emb_path, 'r', encoding='utf-8') as file:
@@ -307,7 +285,6 @@ def import_embeddings(connection, movie_emb_path, user_emb_path):
         else:
             print(f"⚠ 电影嵌入向量文件不存在: {movie_emb_path}")
         
-        # 导入用户嵌入向量
         if os.path.exists(user_emb_path):
             user_count = 0
             with open(user_emb_path, 'r', encoding='utf-8') as file:
@@ -335,7 +312,6 @@ def import_embeddings(connection, movie_emb_path, user_emb_path):
         return False
 
 def update_movie_ratings(connection):
-    """更新电影的平均评分"""
     try:
         cursor = connection.cursor()
         print("\n→ 正在更新电影的平均评分...")
@@ -367,14 +343,12 @@ def main():
         sys.exit(1)
     
     try:
-        # 检查数据是否已存在
         data_exists = check_data_exists(connection)
         
         if data_exists:
             print("\n数据已存在，跳过初始化...")
             return
         
-        # 导入电影数据
         movie_data_path = os.path.join(os.path.dirname(__file__), 'data', 'movies.csv')
         if os.path.exists(movie_data_path):
             if not import_movie_data(connection, movie_data_path):
@@ -382,7 +356,6 @@ def main():
         else:
             print(f"⚠ 电影数据文件不存在: {movie_data_path}")
         
-        # 导入评分数据
         rating_data_path = os.path.join(os.path.dirname(__file__), 'data', 'ratings.csv')
         if os.path.exists(rating_data_path):
             if not import_rating_data(connection, rating_data_path):
@@ -390,13 +363,11 @@ def main():
         else:
             print(f"⚠ 评分数据文件不存在: {rating_data_path}")
 
-        # 导入嵌入向量数据
         movie_emb_path = os.path.join(os.path.dirname(__file__), 'data', 'item2vecEmb.csv')
         user_emb_path = os.path.join(os.path.dirname(__file__), 'data', 'userEmb.csv')
         
         import_embeddings(connection, movie_emb_path, user_emb_path)
         
-        # 更新电影评分
         update_movie_ratings(connection)
         
         print("\n" + "=" * 50)

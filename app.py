@@ -37,6 +37,7 @@ class DatabaseManager:
         self.connect()
     
     def connect(self):
+        try:
             if os.getenv('MYSQL_HOST'):
                 host = os.getenv('MYSQL_HOST', 'mysql')
                 port = int(os.getenv('MYSQL_PORT', '3306'))
@@ -68,7 +69,6 @@ class DatabaseManager:
             if connection.is_connected():
                 print("成功连接到MySQL数据库")
                 connection.close()
-                
         except Error as e:
             print(f"连接MySQL数据库时出错: {e}")
             self.pool = None

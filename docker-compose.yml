@@ -1,5 +1,4 @@
 services:
-  # MySQL 数据库服务
   mysql:
     image: mysql:8.0
     container_name: moviehunter_mysql
@@ -20,7 +19,6 @@ services:
       timeout: 20s
       retries: 10
 
-  # Web 应用服务
   web:
     build: 
       context: .
@@ -45,7 +43,6 @@ services:
     command: >
       sh -c "python docker-init.py && python app.py"
 
-  # 数据初始化服务（一次性运行）
   init-data:
     build:
       context: .

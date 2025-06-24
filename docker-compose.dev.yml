@@ -1,8 +1,4 @@
-# 开发环境 Docker Compose 配置
-# 使用方法: docker-compose -f docker-compose.dev.yml up
-
 services:
-  # MySQL 数据库服务
   mysql:
     image: mysql:8.0
     container_name: moviehunter_mysql_dev
@@ -23,7 +19,6 @@ services:
       timeout: 20s
       retries: 10
 
-  # Web 应用服务（开发模式）
   web:
     build: 
       context: .
@@ -41,7 +36,7 @@ services:
       - FLASK_ENV=development
       - FLASK_DEBUG=True
     volumes:
-      - .:/app  # 挂载源代码，支持热重载
+      - .:/app
       - ./data:/app/data
     depends_on:
       mysql:
