@@ -28,7 +28,7 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 ## 我们目前用到的技术
 
 - **后端**: Python 3.6+, Flask
-- **数据库**: MySQL 5.7+, mysql-connector-python (连接池)
+- **数据库**: MySQL 8.0+, mysql-connector-python (连接池)
 - **数据处理**: NumPy, Pandas
 - **前端**: HTML, CSS, JavaScript, jQuery
 - **图像处理**: PIL (Pillow) - 海报图片压缩和格式转换
