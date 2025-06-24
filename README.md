@@ -15,23 +15,40 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 - 完整的导航菜单，支持全站快速访问
 - 搜索功能，允许用户根据关键词查找电影（SEARCH）
 - 实现获取特定电影特定评分的用户评价
+- 用户注册和登录系统，支持密码MD5加密
+- 半星评分系统（0.5-5.0分），支持评分修改
+- 电影添加功能，支持海报图片上传和自动压缩
+- 评分分布可视化，显示每个评分级别的统计数据
+- 双重推荐算法：传统类型匹配 + 智能嵌入向量相似度
+- 会话管理和用户状态跟踪
+- 多样化评分展示，同时显示高分和低分评价
+- 实时评分统计和电影平均分自动更新
+- 数据库连接池优化，提高系统性能
 
 ## 我们目前用到的技术
 
 - **后端**: Python 3.6+, Flask
-- **数据库**: MySQL 5.7+
+- **数据库**: MySQL 5.7+, mysql-connector-python (连接池)
 - **数据处理**: NumPy, Pandas
 - **前端**: HTML, CSS, JavaScript, jQuery
-- **数据分析**: 协同过滤算法, 基于内容的推荐算法
+- **图像处理**: PIL (Pillow) - 海报图片压缩和格式转换
+- **安全**: hashlib (MD5密码加密), secrets (会话密钥生成)
+- **数据分析**: 协同过滤算法, 基于内容的推荐算法, item2vec嵌入向量
+- **架构模式**: 单例模式, MVC架构, 数据访问对象模式
 
 ## 环境要求
 
 - Python 3.6+
 - MySQL 5.7+
-- Flask
-- NumPy
-- Pandas
-- mysql-connector-python (8.0.22+)
+- Flask (Web框架)
+- NumPy (数值计算)
+- Pandas (数据处理)
+- mysql-connector-python (8.0.22+) - 数据库连接和连接池
+- Pillow (PIL) - 图像处理
+- hashlib (内置) - 密码加密
+- secrets (内置) - 安全随机数生成
+- datetime (内置) - 时间处理
+- math (内置) - 数学计算
 
 ## 安装步骤
 
@@ -130,10 +147,21 @@ MovieHunter使用MySQL数据库存储数据，包含以下表：
 - id: 评分ID（主键）
 - user_id: 用户ID（外键）
 - movie_id: 电影ID（外键）
-- rating: 评分（1-5分）
+- rating: 评分（0.5-5.0分，支持半星）
 - comment: 评论
 - timestamp: 时间戳（用于排序）
 - created_at: 创建时间
+- 约束: 每个用户对每部电影只能评分一次
+
+### movie_embeddings表
+- movie_id: 电影ID（主键，外键）
+- embedding: 电影嵌入向量（TEXT格式，逗号分隔）
+- 用途: 存储item2vec算法生成的电影向量，用于相似度计算
+
+### user_embeddings表
+- user_id: 用户ID（主键，外键）
+- embedding: 用户嵌入向量（TEXT格式，逗号分隔）
+- 用途: 存储用户偏好向量，用于个性化推荐
 
 ## 项目结构
 
@@ -168,3 +196,10 @@ MovieHonter_python/
 - 系统会自动创建名为"moviehunter"的数据库
 - 使用的mysql-connector-python版本需为8.0.22或更高，以支持连接池功能
 - 不用担心JavaScript中的模板语法警告，这些是正常的，因为Flask处理模板后才会将JavaScript发送到浏览器
+- 系统采用单例模式管理数据库连接，确保资源优化
+- 支持的图片格式：PNG, JPG, JPEG, GIF, WEBP，上传后自动转换为JPEG
+- 海报图片会自动压缩到最大宽度300px，保持纵横比
+- 评分系统支持0.5的倍数（如4.5分），数据库自动验证评分范围
+- 推荐算法支持两种模式：传统类型匹配和智能嵌入向量计算
+- 内存缓存机制：启动时将所有数据加载到内存，提高查询性能
+- 密码使用MD5加密存储，会话使用随机密钥保护

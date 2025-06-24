@@ -1,8 +1,9 @@
--- 创建数据库
+
+drop database moviehunter;
 CREATE DATABASE IF NOT EXISTS moviehunter;
 USE moviehunter;
 
--- 创建电影表
+
 CREATE TABLE IF NOT EXISTS movies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -15,14 +16,14 @@ CREATE TABLE IF NOT EXISTS movies (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 创建电影向量表
+
 CREATE TABLE IF NOT EXISTS movie_embeddings (
     movie_id INT PRIMARY KEY,
     embedding TEXT NOT NULL,
     FOREIGN KEY (movie_id) REFERENCES movies(id)
 );
 
--- 创建用户表
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -31,14 +32,14 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 创建用户向量表
+
 CREATE TABLE IF NOT EXISTS user_embeddings (
     user_id INT PRIMARY KEY,
     embedding TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- 创建评分表（支持半星评分）
+
 CREATE TABLE IF NOT EXISTS ratings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

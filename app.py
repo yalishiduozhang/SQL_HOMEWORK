@@ -12,10 +12,10 @@ import decimal
 from PIL import Image
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-app.secret_key = secrets.token_hex(16)  # 生成随机密钥用于session
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 限制上传文件大小为5MB
+app.secret_key = secrets.token_hex(16)  
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  
 
-# 允许的图片扩展名
+
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def allowed_file(filename):
@@ -41,7 +41,6 @@ class DatabaseManager:
             if DatabaseManager._password is None:
                 DatabaseManager._password = getpass.getpass("请输入数据库密码：")
             
-            # 创建连接池
             self.pool = mysql.connector.pooling.MySQLConnectionPool(
                 pool_name="moviehunter",
                 pool_size=5,
@@ -51,7 +50,6 @@ class DatabaseManager:
                 password=DatabaseManager._password
             )
             
-            # 测试连接
             connection = self.pool.get_connection()
             if connection.is_connected():
                 print("成功连接到MySQL数据库")
@@ -175,7 +173,6 @@ class DatabaseManager:
         return result[0] if result else None
     
     def update_rating(self, user_id, movie_id, rating, comment):
-        # 确保评分是0.5的倍数
         rating = round(rating * 2) / 2
         query = """
         UPDATE ratings 
@@ -186,7 +183,6 @@ class DatabaseManager:
         success, _ = self.execute_update(query, (rating, comment, timestamp, user_id, movie_id))
         
         if success:
-            # 更新电影的平均评分
             self.update_movie_rating(movie_id)
             
         return success
@@ -203,37 +199,32 @@ class DatabaseManager:
         return self.execute_query(query, (movie_id, limit, offset))
     
     def _calculate_score_range(self, score):
-        """计算评分范围"""
         score = float(score)
         decimal_part = score - int(score)
-        if decimal_part == 0:  # 整数评分
+        if decimal_part == 0:  
             lower_bound = score - 0.25
             upper_bound = score + 0.25
-        elif abs(decimal_part - 0.5) < 0.01:  # x.5评分
+        elif abs(decimal_part - 0.5) < 0.01:  #
             lower_bound = int(score) + 0.25
             upper_bound = int(score) + 0.75
-        else:  # 其他小数评分，使用±0.25
+        else:  
             lower_bound = score - 0.25
             upper_bound = score + 0.25
         return lower_bound, upper_bound
     
     def _map_score_to_db_score(self, score):
-        """将用户界面上的评分映射到数据库中的评分"""
         score = float(score)
         decimal_part = score - int(score)
         
-        if decimal_part == 0:  # 整数评分
+        if decimal_part == 0:  
             return score
-        elif abs(decimal_part - 0.5) < 0.01:  # x.5评分
-            return int(score)  # 向下取整
-        else:  # 其他小数评分
-            return round(score)  # 四舍五入
+        elif abs(decimal_part - 0.5) < 0.01: 
+            return int(score) 
+        else:  
+            return round(score)  
     
     def get_ratings_by_score(self, movie_id, score, limit=10, offset=0):
-        """获取特定电影特定评分的所有用户评价"""
         score = float(score)
-        
-        # 设置匹配区间
         lower_bound = score - 0.5
         upper_bound = score + 0.5
         
@@ -257,10 +248,8 @@ class DatabaseManager:
         return result[0]['count'] if result else 0
     
     def get_ratings_count_by_score(self, movie_id, score):
-        """获取特定电影特定评分的评价总数"""
         score = float(score)
-        
-        # 设置匹配区间
+
         lower_bound = score - 0.5
         upper_bound = score + 0.5
         
@@ -273,7 +262,6 @@ class DatabaseManager:
         return result[0]['count'] if result else 0
     
     def get_diverse_ratings_by_movie_id(self, movie_id, limit=10):
-        """获取一个电影的多样化评分，包括高分和低分"""
         query = """
         (SELECT r.*, u.username 
         FROM ratings r 
@@ -316,26 +304,22 @@ class DatabaseManager:
         return self.execute_update(query, (title, year, genre, rating, description))
     
     def add_user(self, username, password, email):
-        # 对密码进行MD5加密
         hashed_password = hashlib.md5(password.encode()).hexdigest()
         query = "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)"
         return self.execute_update(query, (username, hashed_password, email))
     
     def add_rating(self, user_id, movie_id, rating, comment=''):
-        # 确保评分是0.5的倍数
         rating = round(rating * 2) / 2
         timestamp = int(datetime.now().timestamp())
         query = "INSERT INTO ratings (user_id, movie_id, rating, comment, timestamp) VALUES (%s, %s, %s, %s, %s)"
         success, _ = self.execute_update(query, (user_id, movie_id, rating, comment, timestamp))
         
         if success:
-            # 更新电影的平均评分
             self.update_movie_rating(movie_id)
         
         return success
     
     def update_movie_rating(self, movie_id):
-        """更新电影的平均评分"""
         query = """
         UPDATE movies m
         SET rating = (
@@ -348,7 +332,6 @@ class DatabaseManager:
         return self.execute_update(query, (movie_id,))
 
     def get_rating_distribution(self, movie_id):
-        """获取电影的评分分布"""
         query = """
         SELECT 
             CASE 
@@ -372,23 +355,23 @@ class DatabaseManager:
         """
         results = self.execute_query(query, (movie_id,))
         
-        # 初始化所有评分级别
         distribution = {
             '5': 0, '4.5': 0, '4': 0, '3.5': 0, '3': 0,
             '2.5': 0, '2': 0, '1.5': 0, '1': 0, '0.5': 0
         }
         
-        # 填充实际数据
         for row in results:
             rating_level = row['rating_level']
             if rating_level in distribution:
                 distribution[rating_level] = row['count']
         
         return distribution
+
+    def get_movie_embedding(self, movie_id):
         query = "SELECT embedding FROM movie_embeddings WHERE movie_id = %s"
         result = self.execute_query(query, (movie_id,))
         return result[0]['embedding'] if result else None
-    
+
     def get_user_embedding(self, user_id):
         query = "SELECT embedding FROM user_embeddings WHERE user_id = %s"
         result = self.execute_query(query, (user_id,))
@@ -587,7 +570,6 @@ class DataManager:
         return result
     
     def refresh_data(self):
-        """刷新数据（用于添加新电影后）"""
         self.movie_map.clear()
         self.user_map.clear()
         self.genre_reverse_index_map.clear()
@@ -774,7 +756,6 @@ class SimilarMovieProcess:
         
         return movie.emb.calculate_similarity(candidate.emb)
 
-# 登录注册相关路由
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -789,7 +770,6 @@ def login():
         user = db.get_user_by_username(username)
         
         if user:
-            # 验证密码
             hashed_password = hashlib.md5(password.encode()).hexdigest()
             if user['password'] == hashed_password:
                 session['user_id'] = user['id']
@@ -815,15 +795,12 @@ def register():
         
         db = DatabaseManager.get_instance()
         
-        # 检查用户名是否已存在
         existing_user = db.get_user_by_username(username)
         if existing_user:
             return jsonify({'success': False, 'message': '用户名已存在'})
         
-        # 添加新用户
         success, user_id = db.add_user(username, password, email)
         if success:
-            # 刷新数据
             DataManager.get_instance().refresh_data()
             return jsonify({'success': True, 'message': '注册成功，请登录'})
         else:
@@ -855,7 +832,6 @@ def add_movie():
         except ValueError:
             return jsonify({'success': False, 'message': '年份必须是数字'})
         
-        # 验证类型是否合法
         ALLOWED_GENRES = {
             'Action', 'Adventure', 'Animation', 'Children', 'Comedy', 
             'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 
@@ -863,7 +839,6 @@ def add_movie():
             'Thriller', 'War', 'Western'
         }
         
-        # 分割并验证每个类型
         genres = [g.strip() for g in genre.split(',')]
         invalid_genres = [g for g in genres if g not in ALLOWED_GENRES]
         
@@ -872,50 +847,40 @@ def add_movie():
                 'success': False, 
                 'message': f'不支持的电影类型: {", ".join(invalid_genres)}'
             })
-        
-        # 重新组合类型字符串
+
         genre = ','.join(genres)
         
         db = DatabaseManager.get_instance()
         success, movie_id = db.add_movie(title, year, genre, 0, description)
         
         if success:
-            # 处理图片上传
             if 'poster' in request.files:
                 file = request.files['poster']
                 if file and allowed_file(file.filename):
                     try:
-                        # 创建posters目录（如果不存在）
                         posters_dir = os.path.join(app.static_folder, 'posters')
                         if not os.path.exists(posters_dir):
                             os.makedirs(posters_dir)
                         
-                        # 保存并处理图片
                         filename = f"{movie_id}.jpg"
                         filepath = os.path.join(posters_dir, filename)
                         
-                        # 使用PIL处理图片
                         img = Image.open(file.stream)
                         
-                        # 转换为RGB（如果是PNG或其他格式）
                         if img.mode != 'RGB':
                             img = img.convert('RGB')
                         
-                        # 调整大小（保持纵横比，宽度最大300px）
                         max_width = 300
                         if img.width > max_width:
                             ratio = max_width / img.width
                             new_height = int(img.height * ratio)
                             img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
                         
-                        # 保存为JPEG
                         img.save(filepath, 'JPEG', quality=85, optimize=True)
                         
                     except Exception as e:
                         print(f"保存图片时出错: {e}")
-                        # 图片保存失败不影响电影添加
             
-            # 刷新数据
             DataManager.get_instance().refresh_data()
             return jsonify({'success': True, 'message': '电影添加成功', 'movieId': movie_id})
         else:
@@ -939,10 +904,9 @@ def rate_movie():
     try:
         movie_id = int(movie_id)
         rating = float(rating)
-        # 确保评分在0.5-5.0之间，且是0.5的倍数
         if rating < 0.5 or rating > 5:
             return jsonify({'success': False, 'message': '评分必须在0.5-5之间'})
-        if (rating * 2) % 1 != 0:  # 检查是否是0.5的倍数
+        if (rating * 2) % 1 != 0: 
             return jsonify({'success': False, 'message': '评分必须是0.5的倍数'})
     except ValueError:
         return jsonify({'success': False, 'message': '无效的数据格式'})
@@ -950,20 +914,17 @@ def rate_movie():
     user_id = session['user_id']
     db = DatabaseManager.get_instance()
     
-    # 检查是否已经评分
+ 
     existing_rating = db.check_user_rating(user_id, movie_id)
     
     if existing_rating:
-        # 更新评分
         success = db.update_rating(user_id, movie_id, rating, comment)
         message = '评分更新成功' if success else '更新失败，请重试'
     else:
-        # 添加新评分
         success = db.add_rating(user_id, movie_id, rating, comment)
         message = '评分成功' if success else '评分失败，请重试'
     
     if success:
-        # 刷新数据
         DataManager.get_instance().refresh_data()
     
     return jsonify({'success': success, 'message': message})
@@ -1006,7 +967,6 @@ def get_session_info():
     else:
         return jsonify({'loggedIn': False})
 
-# 原有路由
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -1017,11 +977,9 @@ def get_movie():
         movie_id = int(request.args.get('id'))
         movie = DataManager.get_instance().get_movie_by_id(movie_id)
         if movie:
-            # 尝试获取多样化的评分
             db = DatabaseManager.get_instance()
             diverse_ratings = db.get_diverse_ratings_by_movie_id(movie_id)
             if diverse_ratings:
-                # 将多样化评分转换为Rating对象并添加到movie对象
                 movie.top_ratings = []
                 for rating_data in diverse_ratings:
                     rating = Rating()
@@ -1031,7 +989,6 @@ def get_movie():
                     rating.timestamp = rating_data.get('timestamp', 0)
                     movie.top_ratings.append(rating)
             
-            # 获取真实的评分分布
             rating_distribution = db.get_rating_distribution(movie_id)
             movie_dict = movie.to_dict()
             movie_dict['ratingDistribution'] = rating_distribution
@@ -1050,7 +1007,6 @@ def get_rating_distribution():
         db = DatabaseManager.get_instance()
         distribution = db.get_rating_distribution(movie_id)
         
-        # 计算总数和百分比
         total = sum(distribution.values())
         if total > 0:
             distribution_percentage = {k: (v / total * 100) for k, v in distribution.items()}
@@ -1178,7 +1134,7 @@ def top_rated():
 def most_commented():
     db = DatabaseManager.get_instance()
     commented_movies = db.get_most_commented_movies(16)
-    return render_template('index.html', page_title="热门评论", movies=commented_movies)
+    return render_template('index.html', page_title="评论最多", movies=commented_movies)
 
 @app.route('/search')
 def search():
