@@ -31,7 +31,7 @@ services:
     container_name: moviehunter_web_dev
     restart: unless-stopped
     ports:
-      - "6010:6010"
+      - "${WEB_PORT:-80}:6010"
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306

@@ -17,6 +17,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# 从 .env 文件加载环境变量，并设置默认值
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+WEB_PORT=${WEB_PORT:-6010}
+MYSQL_EXTERNAL_PORT=${MYSQL_EXTERNAL_PORT:-3306}
+
 echo "======================================"
 echo "MovieHunter Docker 部署脚本"
 echo "======================================"
@@ -51,10 +58,10 @@ echo "✅ Docker 守护进程正在运行"
 # 检查端口是否被占用
 echo ""
 echo "🔍 检查端口占用情况..."
-if netstat -an 2>/dev/null | grep -q ":6010.*LISTEN" || lsof -i :6010 2>/dev/null | grep -q LISTEN; then
-    echo "⚠️  端口 6010 已被占用"
+if netstat -an 2>/dev/null | grep -q ":${WEB_PORT}.*LISTEN" || lsof -i :${WEB_PORT} 2>/dev/null | grep -q LISTEN; then
+    echo "⚠️  端口 ${WEB_PORT} 已被占用"
     echo "💡 请检查是否有其他 MovieHunter 实例正在运行"
-    echo "💡 或者修改 docker-compose.yml 中的端口配置"
+    echo "💡 或者修改 .env 文件中的 WEB_PORT 配置"
     read -p "是否要停止现有服务并继续? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -65,10 +72,10 @@ if netstat -an 2>/dev/null | grep -q ":6010.*LISTEN" || lsof -i :6010 2>/dev/nul
     docker-compose down 2>/dev/null || true
 fi
 
-if netstat -an 2>/dev/null | grep -q ":3306.*LISTEN" || lsof -i :3306 2>/dev/null | grep -q LISTEN; then
-    echo "⚠️  端口 3306 已被占用"
+if netstat -an 2>/dev/null | grep -q ":${MYSQL_EXTERNAL_PORT}.*LISTEN" || lsof -i :${MYSQL_EXTERNAL_PORT} 2>/dev/null | grep -q LISTEN; then
+    echo "⚠️  端口 ${MYSQL_EXTERNAL_PORT} 已被占用"
     echo "💡 请确保没有其他 MySQL 实例在运行"
-    echo "💡 或者修改 docker-compose.yml 中的 MySQL 端口配置"
+    echo "💡 或者修改 .env 文件中的 MYSQL_EXTERNAL_PORT 配置"
 fi
 
 # 检查数据文件是否存在
@@ -155,7 +162,7 @@ echo "检查应用端口连通性..."
 max_attempts=15
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
-    if curl -s -o /dev/null -w "%{http_code}" http://localhost:6010 > /dev/null 2>&1; then
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:${WEB_PORT} > /dev/null 2>&1; then
         echo "✅ Web 应用已就绪并可访问"
         break
     else
@@ -167,15 +174,19 @@ done
 
 if [ $attempt -eq $max_attempts ]; then
     echo "⚠️  应用可能需要更多时间启动，请稍后访问"
-    echo "💡 手动检查: curl http://localhost:6010"
+    echo "💡 手动检查: curl http://localhost:${WEB_PORT}"
 fi
 
 echo ""
 echo "======================================"
 echo "✅ 部署完成！"
 echo ""
-echo "🌍 应用访问地址: http://localhost:6010"
-echo "🗄️  MySQL 访问地址: localhost:3306"
+if [ "$WEB_PORT" = "80" ]; then
+    echo "🌍 应用访问地址: http://<您的服务器IP>"
+else
+    echo "🌍 应用访问地址: http://<您的服务器IP>:${WEB_PORT}"
+fi
+echo "🗄️  MySQL 访问地址: localhost:${MYSQL_EXTERNAL_PORT}"
 echo ""
 echo "📋 可用账号："
 echo "   测试账号 - 用户名: test, 密码: 123456"
