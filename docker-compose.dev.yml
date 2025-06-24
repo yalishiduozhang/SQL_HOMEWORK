@@ -4,7 +4,7 @@
 services:
   # MySQL 数据库服务
   mysql:
-    image: mysql:9.3
+    image: mysql:8.0
     container_name: moviehunter_mysql_dev
     restart: unless-stopped
     environment:
