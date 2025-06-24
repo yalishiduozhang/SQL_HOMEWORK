@@ -1,4 +1,5 @@
 -- 创建数据库
+DROP DATABASE IF EXISTS moviehunter;
 CREATE DATABASE IF NOT EXISTS moviehunter;
 USE moviehunter;
 

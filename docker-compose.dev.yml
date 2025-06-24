@@ -1,0 +1,58 @@
+# 开发环境 Docker Compose 配置
+# 使用方法: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:9.3
+    container_name: moviehunter_mysql_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: moviehunter
+      MYSQL_USER: moviehunter_user
+      MYSQL_PASSWORD: moviehunter_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Web 应用服务（开发模式）
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: moviehunter_web_dev
+    restart: unless-stopped
+    ports:
+      - "6010:6010"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=moviehunter_user
+      - MYSQL_PASSWORD=moviehunter_password
+      - MYSQL_DATABASE=moviehunter
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+    volumes:
+      - .:/app  # 挂载源代码，支持热重载
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '等待 MySQL 完全启动...' && 
+        sleep 10 && 
+        python docker-init.py || true &&
+        python app.py
+      "
+
+volumes:
+  mysql_dev_data:

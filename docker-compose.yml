@@ -1,0 +1,70 @@
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:9.3
+    container_name: moviehunter_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-moviehunter_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-moviehunter}
+      MYSQL_USER: ${MYSQL_USER:-moviehunter_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-moviehunter_password}
+    ports:
+      - "${MYSQL_EXTERNAL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Web 应用服务
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: moviehunter_web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-6010}:6010"
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-moviehunter_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-moviehunter_password}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-moviehunter}
+      - FLASK_ENV=${FLASK_ENV:-production}
+    volumes:
+      - ./static:/app/static
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "python docker-init.py && python app.py"
+
+  # 数据初始化服务（一次性运行）
+  init-data:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: moviehunter_init
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST:-mysql}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER:-moviehunter_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-moviehunter_password}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-moviehunter}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: python docker-init.py
+    profiles:
+      - init
+
+volumes:
+  mysql_data:

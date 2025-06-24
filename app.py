@@ -38,17 +38,35 @@ class DatabaseManager:
     
     def connect(self):
         try:
-            if DatabaseManager._password is None:
-                DatabaseManager._password = getpass.getpass("请输入数据库密码：")
+            # 检查是否在 Docker 环境中
+            if os.getenv('MYSQL_HOST'):
+                # Docker 环境，使用环境变量
+                host = os.getenv('MYSQL_HOST', 'mysql')
+                port = int(os.getenv('MYSQL_PORT', '3306'))
+                user = os.getenv('MYSQL_USER', 'moviehunter_user')
+                password = os.getenv('MYSQL_PASSWORD', 'moviehunter_password')
+                database = os.getenv('MYSQL_DATABASE', 'moviehunter')
+                print(f"使用 Docker 环境连接到数据库: {host}:{port}")
+            else:
+                # 本地环境，使用交互式密码输入
+                if DatabaseManager._password is None:
+                    DatabaseManager._password = getpass.getpass("请输入数据库密码：")
+                host = 'localhost'
+                port = 3306
+                user = 'root'
+                password = DatabaseManager._password
+                database = 'moviehunter'
+                print("使用本地环境连接到数据库")
             
             # 创建连接池
             self.pool = mysql.connector.pooling.MySQLConnectionPool(
                 pool_name="moviehunter",
                 pool_size=5,
-                host='localhost',
-                database='moviehunter',
-                user='root',
-                password=DatabaseManager._password
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password
             )
             
             # 测试连接
@@ -385,9 +403,6 @@ class DatabaseManager:
                 distribution[rating_level] = row['count']
         
         return distribution
-        query = "SELECT embedding FROM movie_embeddings WHERE movie_id = %s"
-        result = self.execute_query(query, (movie_id,))
-        return result[0]['embedding'] if result else None
     
     def get_user_embedding(self, user_id):
         query = "SELECT embedding FROM user_embeddings WHERE user_id = %s"
