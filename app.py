@@ -37,17 +37,31 @@ class DatabaseManager:
         self.connect()
     
     def connect(self):
-        try:
-            if DatabaseManager._password is None:
-                DatabaseManager._password = getpass.getpass("请输入数据库密码：")
+            if os.getenv('MYSQL_HOST'):
+                host = os.getenv('MYSQL_HOST', 'mysql')
+                port = int(os.getenv('MYSQL_PORT', '3306'))
+                user = os.getenv('MYSQL_USER', 'moviehunter_user')
+                password = os.getenv('MYSQL_PASSWORD', 'moviehunter_password')
+                database = os.getenv('MYSQL_DATABASE', 'moviehunter')
+                print(f"使用 Docker 环境连接到数据库: {host}:{port}")
+            else:
+                if DatabaseManager._password is None:
+                    DatabaseManager._password = getpass.getpass("请输入数据库密码：")
+                host = 'localhost'
+                port = 3306
+                user = 'root'
+                password = DatabaseManager._password
+                database = 'moviehunter'
+                print("使用本地环境连接到数据库")
             
             self.pool = mysql.connector.pooling.MySQLConnectionPool(
                 pool_name="moviehunter",
                 pool_size=5,
-                host='localhost',
-                database='moviehunter',
-                user='root',
-                password=DatabaseManager._password
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password
             )
             
             connection = self.pool.get_connection()
