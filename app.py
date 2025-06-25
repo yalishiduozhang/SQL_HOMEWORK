@@ -406,6 +406,130 @@ class DatabaseManager:
         except Exception as e:
             print(f"获取用户嵌入向量时出错: {e}")
             return []
+        
+    def advanced_search_movies(self, keyword=None, genres=None, year_from=None, year_to=None, 
+                                rating_min=None, sort_by='rating', page=1, page_size=20):
+            conditions = []
+            params = []
+            
+            if keyword:
+                conditions.append("(title LIKE %s OR director LIKE %s)")
+                keyword_param = f"%{keyword}%"
+                params.extend([keyword_param, keyword_param])
+            
+            if genres:
+                genre_conditions = []
+                for genre in genres:
+                    genre_conditions.append("genre LIKE %s")
+                    params.append(f"%{genre}%")
+                if genre_conditions:
+                    conditions.append("(" + " OR ".join(genre_conditions) + ")")
+            
+            if year_from:
+                conditions.append("year >= %s")
+                params.append(year_from)
+            if year_to:
+                conditions.append("year <= %s")
+                params.append(year_to)
+            
+            if rating_min:
+                conditions.append("rating >= %s")
+                params.append(rating_min)
+            
+
+            query = "SELECT * FROM movies"
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+            
+            if sort_by == 'year':
+                query += " ORDER BY year DESC, rating DESC"
+            elif sort_by == 'title':
+                query += " ORDER BY title ASC"
+            else: 
+                query += " ORDER BY rating DESC"
+            
+            offset = (page - 1) * page_size
+            query += " LIMIT %s OFFSET %s"
+            params.extend([page_size, offset])
+            
+            return self.execute_query(query, params)
+
+    def count_search_results(self, keyword=None, genres=None, year_from=None, year_to=None, rating_min=None):
+        conditions = []
+        params = []
+        
+        if keyword:
+            conditions.append("(title LIKE %s OR director LIKE %s)")
+            keyword_param = f"%{keyword}%"
+            params.extend([keyword_param, keyword_param])
+        
+        if genres:
+            genre_conditions = []
+            for genre in genres:
+                genre_conditions.append("genre LIKE %s")
+                params.append(f"%{genre}%")
+            if genre_conditions:
+                conditions.append("(" + " OR ".join(genre_conditions) + ")")
+        
+        if year_from:
+            conditions.append("year >= %s")
+            params.append(year_from)
+        if year_to:
+            conditions.append("year <= %s")
+            params.append(year_to)
+        
+        if rating_min:
+            conditions.append("rating >= %s")
+            params.append(rating_min)
+        
+        query = "SELECT COUNT(*) as count FROM movies"
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        
+        result = self.execute_query(query, params)
+        return result[0]['count'] if result else 0
+
+    def get_genre_statistics(self):
+        query = """
+        SELECT 
+            TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(m.genre, ',', n.n), ',', -1)) as genre_name,
+            COUNT(DISTINCT m.id) as movie_count,
+            AVG(m.rating) as avg_rating,
+            MAX(m.rating) as max_rating,
+            MIN(CASE WHEN m.rating > 0 THEN m.rating ELSE NULL END) as min_rating,
+            COUNT(DISTINCT CASE WHEN m.rating > 0 THEN m.id ELSE NULL END) as rated_movie_count
+        FROM movies m
+        CROSS JOIN (
+            SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 
+            UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8
+        ) n
+        WHERE CHAR_LENGTH(m.genre) - CHAR_LENGTH(REPLACE(m.genre, ',', '')) >= n.n - 1
+        GROUP BY genre_name
+        HAVING genre_name != ''
+        ORDER BY avg_rating DESC
+        """
+        
+        results = self.execute_query(query)
+        
+        for row in results:
+            if row['avg_rating'] is None:
+                row['avg_rating'] = 0
+            if row['max_rating'] is None:
+                row['max_rating'] = 0
+            if row['min_rating'] is None:
+                row['min_rating'] = 0
+                
+        return results
+
+    def get_top_movies_by_genre(self, genre, limit=5):
+        query = """
+        SELECT id, title, year, rating
+        FROM movies
+        WHERE genre LIKE %s AND rating > 0
+        ORDER BY rating DESC
+        LIMIT %s
+        """
+        return self.execute_query(query, (f"%{genre}%", limit))
 
 class DataManager:
     _instance = None
@@ -1163,6 +1287,127 @@ def search():
                           movies=search_results,
                           search_term=keyword)
 
+@app.route('/advanced_search')
+def advanced_search():
+    keyword = request.args.get('keyword', '').strip()
+    genres = request.args.get('genres', '').split(',') if request.args.get('genres') else None
+    year_from = request.args.get('yearFrom')
+    year_to = request.args.get('yearTo')
+    rating_min = request.args.get('ratingMin')
+    sort_by = request.args.get('sortBy', 'rating')
+    page = request.args.get('page', 1)
+    page_size = 20
+    
+    try:
+        year_from = int(year_from) if year_from else None
+        year_to = int(year_to) if year_to else None
+        rating_min = float(rating_min) if rating_min else None
+        page = int(page)
+    except ValueError:
+        return jsonify({'error': '参数格式错误'}), 400
+    
+    db = DatabaseManager.get_instance()
+    
+    movies = db.advanced_search_movies(
+        keyword=keyword if keyword else None,
+        genres=genres,
+        year_from=year_from,
+        year_to=year_to,
+        rating_min=rating_min,
+        sort_by=sort_by,
+        page=page,
+        page_size=page_size
+    )
+    
+    total = db.count_search_results(
+        keyword=keyword if keyword else None,
+        genres=genres,
+        year_from=year_from,
+        year_to=year_to,
+        rating_min=rating_min
+    )
+    
+    total_pages = math.ceil(total / page_size) if total > 0 else 1
+    
+    return jsonify({
+        'movies': movies,
+        'total': total,
+        'page': page,
+        'pages': total_pages,
+        'pageSize': page_size
+    })
+
+@app.route('/search_page')
+def search_page():
+    return render_template('search.html')
+
+@app.route('/genre-statistics')
+def genre_statistics():
+    """类型统计页面"""
+    return render_template('genre_statistics.html')
+
+@app.route('/api/genre-statistics')
+def api_genre_statistics():
+    """获取类型统计数据的API"""
+    try:
+        db = DatabaseManager.get_instance()
+        stats = db.get_genre_statistics()
+        
+        genre_map = {
+            'Action': '动作',
+            'Adventure': '冒险',
+            'Animation': '动画',
+            'Children': '儿童',
+            'Comedy': '喜剧',
+            'Crime': '犯罪',
+            'Documentary': '纪录片',
+            'Drama': '剧情',
+            'Fantasy': '奇幻',
+            'Film-Noir': '黑色电影',
+            'Horror': '恐怖',
+            'Musical': '音乐',
+            'Mystery': '悬疑',
+            'Romance': '爱情',
+            'Sci-Fi': '科幻',
+            'Thriller': '惊悚',
+            'War': '战争',
+            'Western': '西部'
+        }
+        
+        for stat in stats:
+            stat['genre_chinese'] = genre_map.get(stat['genre_name'], stat['genre_name'])
+            stat['avg_rating'] = round(float(stat['avg_rating']), 2) if stat['avg_rating'] else 0
+            stat['max_rating'] = float(stat['max_rating']) if stat['max_rating'] else 0
+            stat['min_rating'] = float(stat['min_rating']) if stat['min_rating'] else 0
+        
+        return jsonify({
+            'success': True,
+            'data': stats
+        })
+    except Exception as e:
+        print(f"获取类型统计信息出错: {e}")
+        return jsonify({
+            'success': False,
+            'message': '获取数据失败'
+        })
+
+@app.route('/api/top-movies-by-genre/<genre>')
+def api_top_movies_by_genre(genre):
+    """获取某个类型的高分电影"""
+    try:
+        db = DatabaseManager.get_instance()
+        movies = db.get_top_movies_by_genre(genre, 5)
+        return jsonify({
+            'success': True,
+            'data': movies
+        })
+    except Exception as e:
+        print(f"获取类型高分电影出错: {e}")
+        return jsonify({
+            'success': False,
+            'message': '获取数据失败'
+        })
+    
 if __name__ == '__main__':
     DataManager.get_instance()
     app.run(host='0.0.0.0', port=6010, debug=False)

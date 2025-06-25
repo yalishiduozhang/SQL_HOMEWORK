@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>高级搜索 | MOVIE HUNTER</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='css/my-css.css') }}" rel="stylesheet"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/recsys.js') }}"></script>
+    <style>
+        .search-container {
+            max-width: 800px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-form {
+            margin-bottom: 30px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        
+        .form-group {
+            flex: 1;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .genre-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .genre-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .genre-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        .btn-search {
+            width: 100%;
+            padding: 12px;
+            background: #e50914;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-search:hover {
+            background: #c70812;
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+        
+        .search-results {
+            margin-top: 30px;
+        }
+        
+        .result-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+            }
+            .genre-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .advanced-toggle {
+            cursor: pointer;
+            color: #e50914;
+            text-decoration: underline;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .advanced-filters {
+            display: none;
+        }
+        
+        .advanced-filters.show {
+            display: block;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .pagination-container {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .page-btn {
+            padding: 10px 18px;
+            margin: 0 8px;
+            border: none;
+            background-color: #e50914;
+            color: white;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .page-btn:hover {
+            background-color: #c70812;
+            box-shadow: 0 2px 10px rgba(229, 9, 20, 0.4);
+        }
+        
+        .page-btn.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .page-text {
+            margin: 0 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .page-select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 30px;
+            margin: 0 8px;
+            font-size: 14px;
+            color: #555;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .page-select:hover, .page-select:focus {
+            border-color: #e50914;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.1);
+        }
+    </style>
+</head>
+<body id="root">
+<div>
+    <div class="my-nav">
+        <h1 id="logo"><a href="/">MOVIE HUNTER</a></h1>
+        <div id="navigation">
+        </div>
+        <div id="sub-navigation">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/latest">最新电影</a></li>
+                <li><a href="/top-rated">高分电影</a></li>
+                <li><a href="/most-commented">热门评论</a></li>
+                <li><a href="/genre-statistics">类型统计</a></li>
+                <li><a href="/search_page">高级搜索</a></li>
+                <li><a href="/add_movie">添加电影</a></li>
+                <li id="nav-username"></li>
+                <li id="nav-logout"></li>
+            </ul>
+            <div id="search">
+                <label for="search-field">搜索</label>
+                <form action="/search" method="get" style="display: inline;">
+                    <input type="text" name="q" placeholder="输入搜索内容" id="search-field" title="输入搜索内容" class="blink search-field" />
+                    <button type="submit" style="display:none;">搜索</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ml4-container" style="min-height: 920px;">
+        <div class="search-container">
+            <h2 style="text-align: center; margin-bottom: 30px;">高级搜索</h2>
+            
+            <form id="advanced-search-form" class="search-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="keyword">关键词</label>
+                        <input type="text" id="keyword" name="keyword" placeholder="电影名称、导演等">
+                    </div>
+                </div>
+                
+                <div class="advanced-toggle" onclick="toggleAdvancedFilters()">
+                    显示高级筛选选项 ▼
+                </div>
+                
+                <div class="advanced-filters" id="advanced-filters">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="year-from">年份范围</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="number" id="year-from" name="year-from" placeholder="起始年份" min="1900" max="2025">
+                                <span>至</span>
+                                <input type="number" id="year-to" name="year-to" placeholder="结束年份" min="1900" max="2025">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="rating-min">评分范围</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="rating-min" name="rating-min">
+                                    <option value="">不限</option>
+                                    <option value="1">1分以上</option>
+                                    <option value="2">2分以上</option>
+                                    <option value="3">3分以上</option>
+                                    <option value="4">4分以上</option>
+                                    <option value="4.5">4.5分以上</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>电影类型（可多选）</label>
+                        <div class="genre-grid">
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Action"> 动作</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Adventure"> 冒险</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Animation"> 动画</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Children"> 儿童</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Comedy"> 喜剧</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Crime"> 犯罪</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Documentary"> 纪录片</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Drama"> 剧情</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Fantasy"> 奇幻</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Film-Noir"> 黑色电影</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Horror"> 恐怖</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Musical"> 音乐</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Mystery"> 悬疑</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Romance"> 爱情</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Sci-Fi"> 科幻</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Thriller"> 惊悚</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="War"> 战争</label>
+                            <label class="genre-checkbox"><input type="checkbox" name="genre" value="Western"> 西部</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sort-by">排序方式</label>
+                            <select id="sort-by" name="sort-by">
+                                <option value="rating">按评分排序</option>
+                                <option value="year">按年份排序</option>
+                                <option value="title">按名称排序</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-search">搜索</button>
+            </form>
+        </div>
+        
+        <div class="search-results">
+            <div id="result-info" class="result-info" style="display: none;"></div>
+            <div id="search-results" class="collection-panel"></div>
+            <div id="search-pagination" class="pagination-container" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 存储当前搜索参数
+var currentSearchParams = {};
+
+$(document).ready(function() {
+    // 检查登录状态
+    $.get('/get_session_info', function(data) {
+        if (data.loggedIn) {
+            $('#nav-username').html('<a href="/user.html?id=' + data.userId + '">欢迎，' + data.username + '</a>');
+            $('#nav-logout').html('<a href="/logout">退出</a>');
+        } else {
+            $('#nav-username').html('<a href="/login">登录</a>');
+            $('#nav-logout').html('<a href="/register">注册</a>');
+        }
+    });
+    
+    // 从URL参数预填充表单
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('q')) {
+        $('#keyword').val(urlParams.get('q'));
+        performSearch(1);
+    }
+    
+    $('#advanced-search-form').on('submit', function(e) {
+        e.preventDefault();
+        performSearch(1);
+    });
+});
+
+function toggleAdvancedFilters() {
+    var filters = $('#advanced-filters');
+    var toggle = $('.advanced-toggle');
+    
+    if (filters.hasClass('show')) {
+        filters.removeClass('show');
+        toggle.html('显示高级筛选选项 ▼');
+    } else {
+        filters.addClass('show');
+        toggle.html('隐藏高级筛选选项 ▲');
+    }
+}
+
+function performSearch(page) {
+    page = page || 1;
+    
+    var btn = $('.btn-search');
+    var originalText = btn.html();
+    
+    // 防止重复提交
+    if (btn.prop('disabled')) {
+        return;
+    }
+    
+    // 收集搜索参数
+    currentSearchParams = {
+        keyword: $('#keyword').val(),
+        yearFrom: $('#year-from').val(),
+        yearTo: $('#year-to').val(),
+        ratingMin: $('#rating-min').val(),
+        sortBy: $('#sort-by').val(),
+        page: page
+    };
+    
+    // 收集选中的类型
+    var selectedGenres = [];
+    $('input[name="genre"]:checked').each(function() {
+        selectedGenres.push($(this).val());
+    });
+    if (selectedGenres.length > 0) {
+        currentSearchParams.genres = selectedGenres.join(',');
+    }
+    
+    // 禁用按钮并显示加载状态
+    btn.prop('disabled', true);
+    btn.html('<span class="loading-spinner"></span>搜索中...');
+    
+    $.ajax({
+        url: '/advanced_search',
+        method: 'GET',
+        data: currentSearchParams,
+        success: function(response) {
+            btn.prop('disabled', false);
+            btn.html(originalText);
+            
+            displaySearchResults(response);
+        },
+        error: function() {
+            btn.prop('disabled', false);
+            btn.html(originalText);
+            
+            $('#result-info').html('搜索失败，请重试').show();
+        }
+    });
+}
+
+function displaySearchResults(data) {
+    var resultsDiv = $('#search-results');
+    var infoDiv = $('#result-info');
+    var paginationDiv = $('#search-pagination');
+    
+    resultsDiv.empty();
+    paginationDiv.empty();
+    
+    if (data.movies && data.movies.length > 0) {
+        // 显示结果信息
+        var startNum = (data.page - 1) * data.pageSize + 1;
+        var endNum = Math.min(data.page * data.pageSize, data.total);
+        infoDiv.html('显示 ' + startNum + '-' + endNum + ' 条，共找到 ' + data.total + ' 部电影').show();
+        
+        // 显示电影卡片
+        data.movies.forEach(function(movie) {
+            var genreMap = {
+                'Action': '动作',
+                'Adventure': '冒险',
+                'Animation': '动画',
+                'Children': '儿童',
+                'Comedy': '喜剧',
+                'Crime': '犯罪',
+                'Documentary': '纪录片',
+                'Drama': '剧情',
+                'Fantasy': '奇幻',
+                'Film-Noir': '黑色电影',
+                'Horror': '恐怖',
+                'Musical': '音乐',
+                'Mystery': '悬疑',
+                'Romance': '爱情',
+                'Sci-Fi': '科幻',
+                'Thriller': '惊悚',
+                'War': '战争',
+                'Western': '西部'
+            };
+            
+            var genres = movie.genre ? movie.genre.split(',').map(function(g) {
+                return genreMap[g.trim()] || g.trim();
+            }).join('、') : '';
+            
+            var movieCard = $('<div class="movie-card" data-movieid="' + movie.id + '">' +
+                '<a href="movie.html?id=' + movie.id + '&model=default" class="movie-card-link">' +
+                '<div class="poster-wrapper">' +
+                '<img src="/static/posters/' + movie.id + '.jpg" ' +
+                'onerror="this.onerror=null;this.src=\'/static/images/default-poster.jpg\';" ' +
+                'class="poster">' +
+                '</div>' +
+                '<div class="movie-meta">' +
+                '<div class="title">' + movie.title + 
+                (movie.year ? ' (' + movie.year + ')' : '') + '</div>' +
+                '<div class="rating">' + 
+                (movie.rating ? movie.rating : '暂无评分') + '</div>' +
+                '<div class="genres">' + genres + '</div>' +
+                '</div>' +
+                '</a>' +
+                '</div>');
+            
+            resultsDiv.append(movieCard);
+        });
+        
+        // 创建分页控件
+        if (data.pages > 1) {
+            createPaginationControls(data);
+            paginationDiv.show();
+        } else {
+            paginationDiv.hide();
+        }
+    } else {
+        infoDiv.html('没有找到符合条件的电影').show();
+        paginationDiv.hide();
+    }
+}
+
+function createPaginationControls(data) {
+    var paginationDiv = $('#search-pagination');
+    
+    // 上一页按钮
+    var prevButton = $('<button>', {
+        text: '上一页',
+        class: 'page-btn' + (data.page === 1 ? ' disabled' : ''),
+        disabled: data.page === 1
+    }).click(function() {
+        if (data.page > 1) {
+            performSearch(data.page - 1);
+            $('html, body').animate({ scrollTop: 0 }, 300);
+        }
+    });
+    
+    // 页码选择器
+    var pageSelect = $('<select>', {
+        class: 'page-select'
+    }).change(function() {
+        performSearch(parseInt($(this).val()));
+        $('html, body').animate({ scrollTop: 0 }, 300);
+    });
+    
+    for (var p = 1; p <= data.pages; p++) {
+        var option = $('<option>', {
+            value: p,
+            text: '第 ' + p + ' 页',
+            selected: p === data.page
+        });
+        pageSelect.append(option);
+    }
+    
+    // 下一页按钮
+    var nextButton = $('<button>', {
+        text: '下一页',
+        class: 'page-btn' + (data.page === data.pages ? ' disabled' : ''),
+        disabled: data.page === data.pages
+    }).click(function() {
+        if (data.page < data.pages) {
+            performSearch(data.page + 1);
+            $('html, body').animate({ scrollTop: 0 }, 300);
+        }
+    });
+    
+    // 组装分页控件
+    paginationDiv.append(
+        prevButton,
+        $('<span>', { text: ' 页码: ', class: 'page-text' }),
+        pageSelect,
+        $('<span>', { text: ' / ' + data.pages + ' 页 ', class: 'page-text' }),
+        nextButton
+    );
+}
+</script>
+
+</body>
+</html>
