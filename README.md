@@ -8,12 +8,12 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 - 按类型筛选电影
 - 基于用户历史评分的个性化电影推荐
 - 发现与特定电影相似的其他影片
-- 浏览最新上映的电影（LATEST TRAILERS）
-- 查看评分最高的电影（TOP RATED）
-- 查看评论最多的热门电影（MOST COMMENTED）
+- 浏览最新上映的电影
+- 查看评分最高的电影
+- 查看评论最多的热门电影
 - 用户个人资料页面，包括个性化头像和评分历史
 - 完整的导航菜单，支持全站快速访问
-- 搜索功能，允许用户根据关键词查找电影（SEARCH）
+- 搜索功能，允许用户根据关键词查找电影
 - 实现获取特定电影特定评分的用户评价
 - 用户注册和登录系统，支持密码MD5加密
 - 半星评分系统（0.5-5.0分），支持评分修改
@@ -62,7 +62,7 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 ```bash
 # 确保 Docker 和 Docker Compose 已安装
 docker --version
-docker-compose --version
+docker compose --version
 
 # 确保 Docker 服务正在运行
 docker info
@@ -256,7 +256,8 @@ MovieHonter_python/
 ## 注意事项
 
 - 默认端口为6010，可在app.py中修改
-- 数据库用户名默认为"root"，密码通过交互方式输入
+- Docker部署时MySQL的用户名和密码需要在.env中修改
+- 手动部署数据库用户名默认为"root"，密码通过交互方式输入
 - 系统会自动创建名为"moviehunter"的数据库
 - 使用的mysql-connector-python版本需为8.0.22或更高，以支持连接池功能
 - 不用担心JavaScript中的模板语法警告，这些是正常的，因为Flask处理模板后才会将JavaScript发送到浏览器
