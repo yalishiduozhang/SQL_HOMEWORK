@@ -39,7 +39,7 @@ MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用�
 ## 环境要求
 
 - Docker 20.0+
-- Docker Compose 1.0
+- Docker Compose 2.0+
 - Python 3.6+
 - MySQL 8.0+
 - Flask (Web框架)

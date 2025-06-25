@@ -3,11 +3,11 @@ set -e
 cleanup() {
     if [ $? -ne 0 ]; then
         echo ""
-        echo "部署过程中发生错误"
-        echo "可以尝试以下命令进行故障排除："
-        echo "   - 查看所有容器状态: docker-compose ps"
-        echo "   - 查看所有服务日志: docker-compose logs"
-        echo "   - 停止所有服务: docker-compose down"
+        echo "  部署过程中发生错误"
+        echo "  可以尝试以下命令进行故障排除："
+        echo "   - 查看所有容器状态: docker compose ps"
+        echo "   - 查看所有服务日志: docker compose logs"
+        echo "   - 停止所有服务: docker compose down"
     fi
 }
 trap cleanup EXIT
@@ -27,7 +27,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo "Docker Compose 未安装，请先安装 Docker Compose"
     exit 1
 fi
@@ -35,9 +35,9 @@ fi
 echo "Docker 和 Docker Compose 已安装"
 
 echo ""
-echo "🔍 检查 Docker 服务状态..."
+echo "检查 Docker 服务状态..."
 if ! docker info &> /dev/null; then
-    echo "Docker 守护进程未运行，请启动 Docker"
+    echo "  Docker 守护进程未运行，请启动 Docker"
     echo "  提示："
     echo "   - macOS: 启动 Docker Desktop 应用"
     echo "   - Linux: sudo systemctl start docker"
@@ -45,10 +45,10 @@ if ! docker info &> /dev/null; then
     exit 1
 fi
 
-echo "✅ Docker 守护进程正在运行"
+echo "Docker 守护进程正在运行"
 
 echo ""
-echo "🔍 检查端口占用情况..."
+echo "检查端口占用情况..."
 if netstat -an 2>/dev/null | grep -q ":${WEB_PORT}.*LISTEN" || lsof -i :${WEB_PORT} 2>/dev/null | grep -q LISTEN; then
     echo "端口 ${WEB_PORT} 已被占用"
     echo "请检查是否有其他 MovieHunter 实例正在运行"
@@ -60,7 +60,7 @@ if netstat -an 2>/dev/null | grep -q ":${WEB_PORT}.*LISTEN" || lsof -i :${WEB_PO
         exit 1
     fi
     echo "停止现有服务..."
-    docker-compose down 2>/dev/null || true
+    docker compose down 2>/dev/null || true
 fi
 
 if netstat -an 2>/dev/null | grep -q ":${MYSQL_EXTERNAL_PORT}.*LISTEN" || lsof -i :${MYSQL_EXTERNAL_PORT} 2>/dev/null | grep -q LISTEN; then
@@ -78,15 +78,15 @@ if [ ! -f "data/ratings.csv" ]; then
 fi
 
 echo ""
-echo "🔨 构建 Docker 镜像..."
-if ! docker-compose build; then
+echo "构建 Docker 镜像..."
+if ! docker compose build; then
     echo "Docker 镜像构建失败"
     exit 1
 fi
 
 echo ""
-echo "🚀 启动 MySQL 服务..."
-if ! docker-compose up -d mysql; then
+echo "启动 MySQL 服务..."
+if ! docker compose up -d mysql; then
     echo "MySQL 服务启动失败"
     exit 1
 fi
@@ -98,12 +98,12 @@ echo "检查 MySQL 容器健康状态..."
 max_attempts=30
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
-    if docker-compose ps mysql | grep -q "(healthy)"; then
+    if docker compose ps mysql | grep -q "(healthy)"; then
         echo "MySQL 服务已就绪"
         break
-    elif docker-compose ps mysql | grep -q "(unhealthy)"; then
+    elif docker compose ps mysql | grep -q "(unhealthy)"; then
         echo "MySQL 服务启动失败"
-        echo "查看错误日志: docker-compose logs mysql"
+        echo "查看错误日志: docker compose logs mysql"
         exit 1
     else
         echo "等待中... ($((attempt + 1))/$max_attempts)"
@@ -114,37 +114,36 @@ done
 
 if [ $attempt -eq $max_attempts ]; then
     echo "MySQL 服务启动超时"
-    echo "查看错误日志: docker-compose logs mysql"
+    echo "查看错误日志: docker compose logs mysql"
     exit 1
 fi
 
 echo ""
 echo "初始化数据库数据..."
-if ! docker-compose --profile init run --rm init-data; then
+if ! docker compose --profile init run --rm init-data; then
     echo "数据库初始化失败"
-    echo "查看错误日志: docker-compose logs"
+    echo "查看错误日志: docker compose logs"
     exit 1
 fi
 
 echo ""
 echo "启动 Web 应用..."
-if ! docker-compose up -d web; then
+if ! docker compose up -d web; then
     echo "Web 应用启动失败"
-    echo "查看错误日志: docker-compose logs web"
+    echo "查看错误日志: docker compose logs web"
     exit 1
 fi
 
 echo ""
 echo "验证服务状态..."
-sleep 5
+sleep 5 
 
-if ! docker-compose ps | grep -q "moviehunter_web.*Up"; then
+if ! docker compose ps | grep -q "moviehunter_web.*Up"; then
     echo "Web 应用容器未正常运行"
-    echo "查看容器状态: docker-compose ps"
-    echo "查看错误日志: docker-compose logs web"
+    echo "查看容器状态: docker compose ps"
+    echo "查看错误日志: docker compose logs web"
     exit 1
 fi
-
 
 echo "检查应用端口连通性..."
 max_attempts=15
@@ -177,12 +176,12 @@ fi
 echo "MySQL 访问地址: localhost:${MYSQL_EXTERNAL_PORT}"
 echo ""
 echo "可用账号："
-echo "   测试账号 - 用户名: test, 密码: 123456"
-echo "   历史用户 - 密码: password"
+echo "测试账号 - 用户名: test, 密码: 123456"
+echo "历史用户 - 密码: password"
 echo ""
 echo "管理命令："
-echo "   查看日志: docker-compose logs -f"
-echo "   停止服务: docker-compose down"
-echo "   重启服务: docker-compose restart"
-echo "   清理数据: docker-compose down -v"
+echo "查看日志: docker compose logs -f"
+echo "停止服务: docker compose down"
+echo "重启服务: docker compose restart"
+echo "清理数据: docker compose down -v"
 echo "======================================"
