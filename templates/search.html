@@ -327,11 +327,9 @@
 </div>
 
 <script>
-// 存储当前搜索参数
 var currentSearchParams = {};
 
 $(document).ready(function() {
-    // 检查登录状态
     $.get('/get_session_info', function(data) {
         if (data.loggedIn) {
             $('#nav-username').html('<a href="/user.html?id=' + data.userId + '">欢迎，' + data.username + '</a>');
@@ -341,14 +339,11 @@ $(document).ready(function() {
             $('#nav-logout').html('<a href="/register">注册</a>');
         }
     });
-    
-    // 从URL参数预填充表单
     var urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('q')) {
         $('#keyword').val(urlParams.get('q'));
         performSearch(1);
     }
-    
     $('#advanced-search-form').on('submit', function(e) {
         e.preventDefault();
         performSearch(1);
@@ -373,13 +368,9 @@ function performSearch(page) {
     
     var btn = $('.btn-search');
     var originalText = btn.html();
-    
-    // 防止重复提交
     if (btn.prop('disabled')) {
         return;
     }
-    
-    // 收集搜索参数
     currentSearchParams = {
         keyword: $('#keyword').val(),
         yearFrom: $('#year-from').val(),
@@ -389,7 +380,6 @@ function performSearch(page) {
         page: page
     };
     
-    // 收集选中的类型
     var selectedGenres = [];
     $('input[name="genre"]:checked').each(function() {
         selectedGenres.push($(this).val());
@@ -398,7 +388,6 @@ function performSearch(page) {
         currentSearchParams.genres = selectedGenres.join(',');
     }
     
-    // 禁用按钮并显示加载状态
     btn.prop('disabled', true);
     btn.html('<span class="loading-spinner"></span>搜索中...');
     
@@ -430,12 +419,10 @@ function displaySearchResults(data) {
     paginationDiv.empty();
     
     if (data.movies && data.movies.length > 0) {
-        // 显示结果信息
         var startNum = (data.page - 1) * data.pageSize + 1;
         var endNum = Math.min(data.page * data.pageSize, data.total);
         infoDiv.html('显示 ' + startNum + '-' + endNum + ' 条，共找到 ' + data.total + ' 部电影').show();
         
-        // 显示电影卡片
         data.movies.forEach(function(movie) {
             var genreMap = {
                 'Action': '动作',
@@ -481,8 +468,7 @@ function displaySearchResults(data) {
             
             resultsDiv.append(movieCard);
         });
-        
-        // 创建分页控件
+
         if (data.pages > 1) {
             createPaginationControls(data);
             paginationDiv.show();
@@ -498,7 +484,6 @@ function displaySearchResults(data) {
 function createPaginationControls(data) {
     var paginationDiv = $('#search-pagination');
     
-    // 上一页按钮
     var prevButton = $('<button>', {
         text: '上一页',
         class: 'page-btn' + (data.page === 1 ? ' disabled' : ''),
@@ -510,7 +495,6 @@ function createPaginationControls(data) {
         }
     });
     
-    // 页码选择器
     var pageSelect = $('<select>', {
         class: 'page-select'
     }).change(function() {
@@ -527,7 +511,6 @@ function createPaginationControls(data) {
         pageSelect.append(option);
     }
     
-    // 下一页按钮
     var nextButton = $('<button>', {
         text: '下一页',
         class: 'page-btn' + (data.page === data.pages ? ' disabled' : ''),
@@ -539,7 +522,6 @@ function createPaginationControls(data) {
         }
     });
     
-    // 组装分页控件
     paginationDiv.append(
         prevButton,
         $('<span>', { text: ' 页码: ', class: 'page-text' }),

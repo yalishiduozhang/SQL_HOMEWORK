@@ -491,7 +491,7 @@ class DatabaseManager:
 
     def get_genre_statistics(self):
         query = """
-        SELECT 
+        SELECT
             TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(m.genre, ',', n.n), ',', -1)) as genre_name,
             COUNT(DISTINCT m.id) as movie_count,
             AVG(m.rating) as avg_rating,

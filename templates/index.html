@@ -112,7 +112,6 @@
 <script type="text/javascript">
 var baseUrl = window.location.protocol + "//" + window.location.host + "/";
 
-// 检查登录状态
 $(document).ready(function() {
     $.get('/get_session_info', function(data) {
         if (data.loggedIn) {

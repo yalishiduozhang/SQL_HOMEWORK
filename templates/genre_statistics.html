@@ -312,7 +312,6 @@
         </div>
         
         <div class="stats-container">
-            <!-- 总体统计 -->
             <div class="summary-section" id="summary-section">
                 <h3 class="summary-title">总体统计</h3>
                 <div class="summary-grid">
@@ -335,14 +334,12 @@
                 </div>
             </div>
             
-            <!-- 类型统计卡片 -->
             <div class="stats-grid" id="stats-grid">
                 <div class="loading">正在加载统计数据...</div>
             </div>
         </div>
     </div>
     
-    <!-- 高分电影模态框 -->
     <div id="topMoviesModal" class="top-movies-modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -357,7 +354,6 @@
 <script>
 var baseUrl = window.location.protocol + "//" + window.location.host + "/";
 
-// 检查登录状态
 $(document).ready(function() {
     $.get('/get_session_info', function(data) {
         if (data.loggedIn) {
@@ -369,7 +365,6 @@ $(document).ready(function() {
         }
     });
     
-    // 加载统计数据
     loadGenreStatistics();
 });
 
@@ -390,7 +385,6 @@ function displayStatistics(data) {
     var statsGrid = $('#stats-grid');
     statsGrid.empty();
     
-    // 按平均评分排序
     data.sort(function(a, b) {
         return b.avg_rating - a.avg_rating;
     });
@@ -441,7 +435,6 @@ function displayStatistics(data) {
         statsGrid.append(card);
     });
     
-    // 动画显示评分条
     setTimeout(function() {
         $('.rating-fill').each(function() {
             $(this).css('width', $(this).data('width'));
@@ -450,7 +443,6 @@ function displayStatistics(data) {
 }
 
 function updateSummary(data) {
-    // 计算总体统计
     var totalGenres = data.length;
     var totalMovies = data.reduce(function(sum, stat) {
         return sum + stat.movie_count;
@@ -516,7 +508,6 @@ function showTopMovies(genre, genreChinese) {
     });
 }
 
-// 关闭模态框
 $('.close').click(function() {
     $('#topMoviesModal').hide();
 });
