@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>添加电影 | MOVIE HUNTER</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link href="{{ url_for('static', filename='css/my-css.css') }}" rel="stylesheet"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>
+    <style>
+        .add-movie-container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .page-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #e50914;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #e50914;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-submit:hover {
+            background: #c70812;
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+        
+        .btn-submit:disabled {
+            background: #999;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .form-hint {
+            font-size: 13px;
+            color: #777;
+            margin-top: 5px;
+        }
+        
+        .genre-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .genre-checkbox {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        
+        .genre-checkbox:hover {
+            background-color: #e8e8e8;
+        }
+        
+        .genre-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .genre-checkbox input[type="checkbox"]:checked + {
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .genre-checkboxes {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .genre-checkboxes {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input:hover {
+            border-color: #e50914;
+            background-color: #fff;
+        }
+        
+        .file-preview {
+            margin-top: 15px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .file-preview img {
+            max-width: 200px;
+            max-height: 300px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-remove-file {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e50914;
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-remove-file:hover {
+            background: #c70812;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body id="root">
+<div>
+    <div class="my-nav">
+        <h1 id="logo"><a href="/">MOVIE HUNTER</a></h1>
+        <div id="navigation">
+        </div>
+        <div id="sub-navigation">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/latest">最新电影</a></li>
+                <li><a href="/top-rated">高分电影</a></li>
+                <li><a href="/most-commented">热门评论</a></li>
+                <li><a href="/genre-statistics">类型统计</a></li>
+                <li><a href="/search_page">高级搜索</a></li>
+                <li><a href="/add_movie">添加电影</a></li>
+                <li id="nav-username"></li>
+                <li id="nav-logout"></li>
+            </ul>
+            <div id="search">
+                <label for="search-field">搜索</label>
+                <form action="/search" method="get" style="display: inline;">
+                    <input type="text" name="q" placeholder="输入搜索内容" id="search-field" title="输入搜索内容" class="blink search-field" />
+                    <button type="submit" style="display:none;">搜索</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ml4-container" style="min-height: 600px;">
+        <div class="add-movie-container">
+            <h2 class="page-title">添加新电影</h2>
+            
+            <div id="alert-message" class="alert"></div>
+            
+            <form id="add-movie-form">
+                <div class="form-group">
+                    <label for="title">电影名称 *</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="year">上映年份 *</label>
+                    <input type="number" id="year" name="year" min="1900" max="2050" required>
+                    <div class="form-hint">请输入4位数年份，如：2023</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="genre">电影类型 * <span style="font-size: 14px; color: #666;">（可多选）</span></label>
+                    <div id="genre-checkboxes" class="genre-checkboxes">
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Action"> 动作</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Adventure"> 冒险</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Animation"> 动画</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Children"> 儿童</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Comedy"> 喜剧</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Crime"> 犯罪</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Documentary"> 纪录片</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Drama"> 剧情</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Fantasy"> 奇幻</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Film-Noir"> 黑色电影</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Horror"> 恐怖</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Musical"> 音乐</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Mystery"> 悬疑</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Romance"> 爱情</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Sci-Fi"> 科幻</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Thriller"> 惊悚</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="War"> 战争</label>
+                        <label class="genre-checkbox"><input type="checkbox" name="genre" value="Western"> 西部</label>
+                    </div>
+                    <div class="form-hint">请至少选择一个类型</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="poster">电影海报 <span style="font-size: 14px; color: #666;">（可选）</span></label>
+                    <input type="file" id="poster" name="poster" accept="image/*" class="file-input">
+                    <div class="file-preview" id="file-preview" style="display: none;">
+                        <img id="preview-image" src="" alt="预览图">
+                        <button type="button" class="btn-remove-file" onclick="removeFile()">×</button>
+                    </div>
+                    <div class="form-hint">支持 JPG、PNG、GIF 等图片格式，建议尺寸 300×450 像素</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">电影简介</label>
+                    <textarea id="description" name="description" placeholder="请输入电影简介..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn-submit">添加电影</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // 检查登录状态
+    $.get('/get_session_info', function(data) {
+        if (data.loggedIn) {
+            $('#nav-username').html('<a href="/user.html?id=' + data.userId + '">欢迎，' + data.username + '</a>');
+            $('#nav-logout').html('<a href="/logout">退出</a>');
+        } else {
+            $('#nav-username').html('<a href="/login">登录</a>');
+            $('#nav-logout').html('<a href="/register">注册</a>');
+        }
+    });
+    
+    // 文件选择预览
+    $('#poster').on('change', function(e) {
+        var file = e.target.files[0];
+        if (file) {
+            // 检查文件类型
+            if (!file.type.startsWith('image/')) {
+                showMessage('请选择图片文件', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // 检查文件大小（限制5MB）
+            if (file.size > 5 * 1024 * 1024) {
+                showMessage('图片大小不能超过5MB', 'error');
+                this.value = '';
+                return;
+            }
+            
+            // 显示预览
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                $('#preview-image').attr('src', e.target.result);
+                $('#file-preview').show();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    $('#add-movie-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        // 获取提交按钮
+        var submitBtn = $('#add-movie-form button[type="submit"]');
+        var originalText = submitBtn.html();
+        
+        // 防止重复提交
+        if (submitBtn.prop('disabled')) {
+            return;
+        }
+        
+        var title = $('#title').val();
+        var year = $('#year').val();
+        var description = $('#description').val();
+        
+        // 收集所有选中的类型
+        var selectedGenres = [];
+        $('input[name="genre"]:checked').each(function() {
+            selectedGenres.push($(this).val());
+        });
+        
+        if (selectedGenres.length === 0) {
+            showMessage('请至少选择一个电影类型', 'error');
+            return;
+        }
+        
+        // 准备FormData
+        var formData = new FormData();
+        formData.append('title', title);
+        formData.append('year', year);
+        formData.append('genre', selectedGenres.join(','));
+        formData.append('description', description);
+        
+        // 添加图片文件
+        var posterFile = $('#poster')[0].files[0];
+        if (posterFile) {
+            formData.append('poster', posterFile);
+        }
+        
+        // 禁用按钮并显示加载状态
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<span class="loading-spinner"></span>正在添加...');
+        
+        $.ajax({
+            url: '/add_movie',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    submitBtn.html('<span class="loading-spinner"></span>添加成功！正在跳转...');
+                    showMessage('电影添加成功！正在跳转到电影详情页...', 'success');
+                    setTimeout(function() {
+                        window.location.href = '/movie.html?id=' + response.movieId + '&model=default';
+                    }, 1500);
+                } else {
+                    showMessage(response.message, 'error');
+                    // 恢复按钮
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html(originalText);
+                }
+            },
+            error: function() {
+                showMessage('添加失败，请重试', 'error');
+                // 恢复按钮
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+            }
+        });
+    });
+    
+    function showMessage(message, type) {
+        var alertDiv = $('#alert-message');
+        alertDiv.removeClass('alert-success alert-error');
+        alertDiv.addClass('alert-' + type);
+        alertDiv.text(message);
+        alertDiv.show();
+        
+        setTimeout(function() {
+            alertDiv.fadeOut();
+        }, 3000);
+    }
+});
+
+// 移除文件预览
+function removeFile() {
+    $('#poster').val('');
+    $('#file-preview').hide();
+    $('#preview-image').attr('src', '');
+}
+</script>
+
+</body>
+</html>

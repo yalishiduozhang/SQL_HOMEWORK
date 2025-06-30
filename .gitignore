@@ -29,8 +29,9 @@ MANIFEST
 
 # PyInstaller - 排除打包生成的文件
 build/
-dist/
-*.exe
+# 注释掉以下行，允许上传打包好的EXE文件供用户下载
+# dist/
+# *.exe
 *.spec
 
 # Virtual Environment

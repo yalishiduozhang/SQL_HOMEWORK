@@ -1,0 +1,329 @@
+# SQL_HOMEWORK
+
+MovieHunter是一个基于Flask和MySQL的电影推荐系统，能够根据用户对电影的评分和喜好提供个性化的电影推荐。系统结合了协同过滤和基于内容的推荐算法，为用户提供精准的电影建议。
+
+## 目前实现的功能
+
+- 浏览电影列表与详情
+- 按类型筛选电影
+- 基于用户历史评分的个性化电影推荐
+- 发现与特定电影相似的其他影片
+- 浏览最新上映的电影
+- 查看评分最高的电影
+- 查看评论最多的热门电影
+- 用户个人资料页面，包括个性化头像和评分历史
+- 完整的导航菜单，支持全站快速访问
+- 搜索功能，允许用户根据关键词查找电影
+- 实现获取特定电影特定评分的用户评价
+- 用户注册和登录系统，支持密码MD5加密
+- 半星评分系统（0.5-5.0分），支持评分修改
+- 电影添加功能，支持海报图片上传和自动压缩
+- 评分分布可视化，显示每个评分级别的统计数据
+- 双重推荐算法：传统类型匹配 + 智能嵌入向量相似度
+- 会话管理和用户状态跟踪
+- 多样化评分展示，同时显示高分和低分评价
+- 实时评分统计和电影平均分自动更新
+- 数据库连接池优化，提高系统性能
+
+## 我们目前用到的技术
+
+- **后端**: Python 3.6+, Flask
+- **数据库**: MySQL 8.0+, mysql-connector-python (连接池)
+- **数据处理**: NumPy, Pandas
+- **前端**: HTML, CSS, JavaScript, jQuery
+- **图像处理**: PIL (Pillow) - 海报图片压缩和格式转换
+- **安全**: hashlib (MD5密码加密), secrets (会话密钥生成)
+- **数据分析**: 协同过滤算法, 基于内容的推荐算法, item2vec嵌入向量
+- **架构模式**: 单例模式, MVC架构, 数据访问对象模式
+
+## 环境要求
+
+- Docker 20.0+
+- Docker Compose 2.0+
+- Python 3.6+
+- MySQL 8.0+
+- Flask (Web框架)
+- NumPy (数值计算)
+- Pandas (数据处理)
+- mysql-connector-python (8.0.22+) - 数据库连接和连接池
+- Pillow (PIL) - 图像处理
+- hashlib (内置) - 密码加密
+- secrets (内置) - 安全随机数生成
+- datetime (内置) - 时间处理
+- math (内置) - 数学计算
+
+## 安装步骤
+
+### 方式一：EXE 一键启动（推荐）
+
+这是最简单快速的启动方式，无需安装Python环境，适合所有Windows用户。
+
+#### 1. 环境准备
+- 确保MySQL服务已安装并启动（推荐使用XAMPP）
+- Windows 7/8/10/11 操作系统
+- 至少500MB可用磁盘空间
+
+#### 2. 一键启动
+```
+双击 Start_MovieHunter.bat 启动脚本
+```
+
+启动脚本会自动：
+- 检查MySQL服务状态
+- 检测数据库初始化状态
+- 引导用户完成数据库初始化（首次运行）
+- 启动MovieHunter应用
+- 自动打开浏览器访问系统
+
+#### 3. 首次使用步骤
+1. 双击 `Start_MovieHunter.bat`
+2. 当提示"是否现在初始化数据库？"时，输入 `y` 并按回车
+3. 输入MySQL数据库密码（XAMPP默认为空，直接按回车）
+4. 等待数据库初始化完成（可能需要几分钟）
+5. 浏览器会自动打开 http://localhost:6010
+
+#### 4. 日常使用
+- 直接双击 `Start_MovieHunter.bat` 即可启动
+- 或者双击 `MovieHunter.exe` 直接运行主程序
+
+#### 5. 测试账号
+```
+测试账号：
+- 用户名: test
+- 密码: 123456
+
+历史用户：
+- 用户名: user_1, user_2, user_3...
+- 密码: password
+```
+
+#### 6. 故障排除
+如果遇到问题，可以：
+- 双击 `Debug_MovieHunter.bat` 查看详细错误信息
+- 确保MySQL服务正在运行
+- 检查端口6010是否被其他程序占用
+- 确保所有文件完整，不要删除 `_internal` 文件夹中的任何内容
+
+### 方式二：Docker 一键部署
+
+这是最简单快速的部署方式
+
+#### 1. 环境准备
+```bash
+# 确保 Docker 和 Docker Compose 已安装
+docker --version
+docker compose --version
+
+# 确保 Docker 服务正在运行
+docker info
+```
+
+#### 2. 克隆项目
+```bash
+git clone https://github.com/yalishiduozhang/SQL_HOMEWORK
+cd SQL_HOMEWORK
+```
+
+#### 3. 一键部署
+```bash
+# 给脚本执行权限
+chmod +x deploy.sh
+
+# 运行部署脚本
+./deploy.sh
+```
+
+部署脚本会自动：
+- 检查 Docker 环境
+- 检查端口占用
+- 构建应用镜像
+- 启动 MySQL 服务
+- 等待数据库准备就绪
+- 初始化数据库和数据
+- 启动 Web 应用
+- 验证服务状态
+
+#### 4. 访问应用
+部署成功后，访问：**http://localhost:6010**
+
+#### 5. 测试账号
+```
+测试账号：
+- 用户名: test
+- 密码: 123456
+
+历史用户：
+- 用户名: user_1, user_2, user_3...
+- 密码: password
+```
+
+### 方式二：手动部署
+#### 1. 安装MySQL
+
+##### Windows
+1. 下载并安装MySQL：https://dev.mysql.com/downloads/installer/
+2. 安装过程中设置root用户密码（请记住此密码）
+3. 确保MySQL服务已启动
+
+##### macOS
+```bash
+brew install mysql
+brew services start mysql
+```
+
+##### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install mysql-server
+sudo systemctl start mysql
+```
+
+#### 2. 安装Python依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+如果遇到mysql-connector-python没有pooling模块的错误，请尝试：
+```bash
+pip uninstall mysql-connector-python
+pip install mysql-connector-python>=8.0.22
+```
+
+#### 3. 初始化数据库
+
+1. 确保MySQL服务已启动
+2. 如果之前已经初始化过数据库，建议重新初始化以确保结构一致：
+   ```sql
+   DROP DATABASE IF EXISTS moviehunter;
+   ```
+3. 运行初始化脚本：
+
+```bash
+python init_db.py
+```
+
+4. 按提示输入MySQL数据库密码
+5. 等待系统完成数据库创建和示例数据导入
+
+#### 4. 运行应用程序
+
+```bash
+python app.py
+```
+
+1. 按提示输入MySQL数据库密码
+2. 然后在浏览器中访问：http://localhost:6010
+
+## 数据导入说明
+
+系统使用CSV文件作为数据源，支持以下数据文件：
+
+- `movies.csv`: 包含电影基本信息（ID、标题、类型等）
+- `ratings.csv`: 包含用户对电影的评分数据
+- `links.csv`: 包含电影外部链接信息
+- `item2vecEmb.csv`: 电影向量嵌入数据（用于相似性计算）
+- `userEmb.csv`: 用户向量嵌入数据（用于个性化推荐）
+
+数据导入过程中采用了批量处理技术，大幅提高了导入效率。系统还实现了多级错误处理和智能回退机制，确保数据导入的稳定性和可靠性。
+
+## 数据库结构
+
+MovieHunter使用MySQL数据库存储数据，包含以下表：
+
+### movies表
+- id: 电影ID（主键）
+- title: 电影标题
+- year: 发行年份
+- director: 导演
+- genre: 类型（逗号分隔的多个类型）
+- rating: 平均评分
+- poster_url: 海报图片URL
+- description: 电影描述
+- created_at: 创建时间
+
+### users表
+- id: 用户ID（主键）
+- username: 用户名（唯一）
+- password: 密码（MD5加密）
+- email: 邮箱（唯一）
+- created_at: 创建时间
+
+### ratings表
+- id: 评分ID（主键）
+- user_id: 用户ID（外键）
+- movie_id: 电影ID（外键）
+- rating: 评分（0.5-5.0分，支持半星）
+- comment: 评论
+- timestamp: 时间戳（用于排序）
+- created_at: 创建时间
+- 约束: 每个用户对每部电影只能评分一次
+
+### movie_embeddings表
+- movie_id: 电影ID（主键，外键）
+- embedding: 电影嵌入向量（TEXT格式，逗号分隔）
+- 用途: 存储item2vec算法生成的电影向量，用于相似度计算
+
+### user_embeddings表
+- user_id: 用户ID（主键，外键）
+- embedding: 用户嵌入向量（TEXT格式，逗号分隔）
+- 用途: 存储用户偏好向量，用于个性化推荐
+
+## 项目结构
+
+```
+MovieHonter_python/
+├── app.py              # 主应用程序（Flask服务器）
+├── init_db.py          # 数据库初始化脚本
+├── docker-init.py      # Docker环境初始化
+├── schema.sql          # 数据库模式定义
+├── requirements.txt    # Python依赖列表
+├── deploy.sh           # 一键部署脚本
+├── Dockerfile              # Docker镜像构建文件
+├── docker-compose.yml      # 生产环境
+├── docker-compose.dev.yml  # 开发环境
+├── data/               # 数据文件目录
+│   ├── movies.csv      # 电影数据
+│   ├── ratings.csv     # 评分数据
+│   ├── links.csv       # 外部链接数据
+│   ├── item2vecEmb.csv # 电影向量嵌入
+│   └── userEmb.csv     # 用户向量嵌入
+├── static/             # 静态文件（CSS、JS、图片）
+│   ├── css/            # CSS样式文件
+│   ├── js/             # JavaScript文件
+│   ├── images/         # 图像资源
+│   │   └── avatar/     # 用户头像
+│   └── posters/        # 电影海报
+└── templates/          # HTML模板
+    ├── index.html      # 首页模板
+    ├── movie.html      # 电影详情页模板
+    ├── user.html       # 用户页面模板
+    ├── login.html      # 登录页面
+    ├── register.html   # 注册页面
+    └── add_movie.html  # 添加电影页面
+```
+
+## 注意事项
+
+### EXE版本特别说明
+- **文件完整性**：必须保持 `_internal` 文件夹完整，不能删除任何文件
+- **MySQL依赖**：用户必须预先安装MySQL并启动服务（推荐使用XAMPP）
+- **首次启动**：首次启动可能需要30秒-1分钟，请耐心等待
+- **防火墙设置**：确保防火墙允许6010端口访问
+- **杀毒软件**：某些杀毒软件可能误报，需要添加信任
+- **系统要求**：Windows 7/8/10/11，至少4GB内存，5GB可用磁盘空间
+
+### 通用说明
+- 默认端口为6010，可在app.py中修改
+- Docker部署时MySQL的用户名和密码需要在.env中修改
+- 手动部署数据库用户名默认为"root"，密码通过交互方式输入
+- 系统会自动创建名为"moviehunter"的数据库
+- 使用的mysql-connector-python版本需为8.0.22或更高，以支持连接池功能
+- 不用担心JavaScript中的模板语法警告，这些是正常的，因为Flask处理模板后才会将JavaScript发送到浏览器
+- 系统采用单例模式管理数据库连接，确保资源优化
+- 支持的图片格式：PNG, JPG, JPEG, GIF, WEBP，上传后自动转换为JPEG
+- 海报图片会自动压缩到最大宽度300px，保持纵横比
+- 评分系统支持0.5的倍数（如4.5分），数据库自动验证评分范围
+- 推荐算法支持两种模式：传统类型匹配和智能嵌入向量计算
+- 内存缓存机制：启动时将所有数据加载到内存，提高查询性能
+- 密码使用MD5加密存储，会话使用随机密钥保护
