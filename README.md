@@ -107,7 +107,76 @@ chmod +x deploy.sh
 - 密码: password
 ```
 
-### 方式二：手动部署
+### 方式二：Windows EXE 打包部署
+
+这种方式适合需要分发给没有Python环境的Windows用户，生成独立的可执行文件。
+
+#### 1. 环境准备
+- Windows 操作系统
+- Python 3.7+ 已安装
+- 项目依赖已安装（`pip install -r requirements.txt`）
+- PyInstaller 打包工具
+
+#### 2. 安装打包工具
+```bash
+pip install pyinstaller
+```
+
+#### 3. 执行打包
+使用项目提供的打包脚本：
+
+**方式A：使用修复版打包脚本（推荐）**
+```bash
+# 运行修复版打包脚本
+fix_build_exe.bat
+```
+
+**方式B：使用英文版打包脚本**
+```bash
+# 运行英文版打包脚本（避免中文编码问题）
+build_exe.bat
+```
+
+**方式C：手动打包命令**
+```bash
+pyinstaller --onedir --console --name "MovieHunter" \
+    --add-data "app.py;." \
+    --add-data "launcher.py;." \
+    --add-data "init_db.py;." \
+    --add-data "templates;templates" \
+    --add-data "static;static" \
+    --add-data "data;data" \
+    --add-data "schema.sql;." \
+    --add-data "requirements.txt;." \
+    --hidden-import "mysql.connector" \
+    --hidden-import "PIL" \
+    --hidden-import "flask" \
+    --hidden-import "numpy" \
+    --hidden-import "pandas" \
+    --noconfirm \
+    launcher.py
+```
+
+#### 4. 打包结果
+打包完成后，在 `dist\MovieHunter\` 文件夹中会生成：
+- `MovieHunter.exe` - 主程序
+- `Start_MovieHunter.bat` - 启动脚本
+- `Debug_MovieHunter.bat` - 调试脚本
+- `_internal\` - 依赖文件夹（包含所有必要文件）
+
+#### 5. 分发说明
+- 将整个 `dist\MovieHunter` 文件夹打包分发
+- 用户需要安装MySQL并启动服务
+- 双击 `Start_MovieHunter.bat` 即可运行
+- 首次运行会自动引导数据库初始化
+
+#### 6. EXE版本特点
+- **无需Python环境**：可在任何Windows机器上运行
+- **文件大小**：约4-5GB（包含完整Python运行时）
+- **启动时间**：首次启动可能需要30秒-1分钟
+- **系统要求**：Windows 7/8/10/11，4GB+ 内存
+
+### 方式三：手动部署
 #### 1. 安装MySQL
 
 ##### Windows
