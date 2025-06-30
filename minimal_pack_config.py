@@ -1,30 +1,22 @@
-# MovieHunter PyInstaller 配置文件
-# 此文件定义了打包MovieHunter为Windows可执行文件的详细配置
+# MovieHunter 精简打包配置
+# 专门用于减小EXE文件体积的优化配置
 
-# 项目信息
+import os
+import sys
+
 APP_NAME = "MovieHunter"
 APP_VERSION = "1.0.0"
-APP_DESCRIPTION = "MovieHunter 电影推荐系统"
-APP_AUTHOR = "MovieHunter Team"
 
-# 打包配置
-PACK_CONFIG = {
-    # 基本设置
+# 精简打包配置 - 专注于减小体积
+MINIMAL_PACK_CONFIG = {
     "name": APP_NAME,
     "debug": False,
-    "console": True,  # 显示控制台，便于查看启动信息
-    "onedir": True,   # 创建文件夹形式的分发
+    "console": True,
+    "onedir": True,
+    "clean": True,
+    "noconfirm": True,
     
-    # 图标和版本信息
-    "icon": "static/images/logo.ico",
-    "version_file": "version_info.txt",
-    
-    # 优化设置
-    "upx": True,      # 使用UPX压缩
-    "clean": True,    # 清理临时文件
-    "noconfirm": True,  # 不询问确认
-    
-    # 排除不必要的模块以减小体积 - 大幅增强版
+    # 严格排除不必要的大型库
     "excludes": [
         # GUI 框架 (不需要)
         "tkinter", "PyQt5", "PyQt6", "PySide2", "PySide6", "wx",
@@ -49,7 +41,7 @@ PACK_CONFIG = {
         "jupyter", "notebook", "IPython", "ipykernel",
         
         # 网络和异步库的非必要部分
-        "asyncio", "aiohttp", "websockets", "grpc", "opentelemetry",
+        "asyncio", "aiohttp", "websockets", "grpc",
         
         # 数据库的非必要部分
         "sqlite3", "psycopg2", "pymongo", "sqlalchemy",
@@ -72,10 +64,10 @@ PACK_CONFIG = {
         
         # 其他大型库
         "zmq", "pyzmq", "tornado", "bokeh", "plotly",
-        "sympy", "dask", "numba", "cython", "lxml",
+        "sympy", "dask", "numba", "cython",
     ],
     
-    # 需要包含的数据文件 - 优化版本
+    # 只包含必要的数据文件
     "datas": [
         ("templates", "templates"),
         ("static/css", "static/css"),
@@ -90,11 +82,9 @@ PACK_CONFIG = {
         ("requirements.txt", "."),
         ("app.py", "."),
         ("init_db.py", "."),
-        ("README.md", "."),
-        ("Windows启动指南.md", "."),
     ],
     
-    # 隐藏导入 - 只包含必要模块
+    # 只导入必要的模块
     "hiddenimports": [
         # 数据库连接 (必需)
         "mysql.connector",
@@ -106,9 +96,6 @@ PACK_CONFIG = {
         "werkzeug.serving",
         "werkzeug.utils",
         "jinja2.ext",
-        "markupsafe",
-        "click",
-        "itsdangerous",
         
         # 图像处理核心 (必需)
         "PIL.Image",
@@ -125,40 +112,40 @@ PACK_CONFIG = {
         "pandas.core", "pandas.io.parsers",
     ],
     
-    # 收集所有子模块 - 只包含必要的
-    "collect_all": [
-        "mysql.connector",
-    ],
+    # 不收集额外的子模块
+    "collect_all": [],
 }
 
-# 版本信息配置
-VERSION_INFO = f"""
-VSVersionInfo(
-  ffi=FixedFileInfo(
-    filevers=(1, 0, 0, 0),
-    prodvers=(1, 0, 0, 0),
-    mask=0x3f,
-    flags=0x0,
-    OS=0x40004,
-    fileType=0x1,
-    subtype=0x0,
-    date=(0, 0)
-    ),
-  kids=[
-    StringFileInfo(
-      [
-      StringTable(
-        u'040904B0',
-        [StringStruct(u'CompanyName', u'{APP_AUTHOR}'),
-        StringStruct(u'FileDescription', u'{APP_DESCRIPTION}'),
-        StringStruct(u'FileVersion', u'{APP_VERSION}'),
-        StringStruct(u'InternalName', u'{APP_NAME}'),
-        StringStruct(u'LegalCopyright', u'Copyright © 2024 {APP_AUTHOR}'),
-        StringStruct(u'OriginalFilename', u'{APP_NAME}.exe'),
-        StringStruct(u'ProductName', u'{APP_DESCRIPTION}'),
-        StringStruct(u'ProductVersion', u'{APP_VERSION}')])
-      ]), 
-    VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
-  ]
-)
-"""
+def get_minimal_pyinstaller_command():
+    """生成精简的PyInstaller命令"""
+    cmd_parts = [
+        "pyinstaller",
+        "--onedir",
+        "--console", 
+        "--name", "MovieHunter",
+        "--clean",
+        "--noconfirm",
+    ]
+    
+    # 添加排除项
+    for exclude in MINIMAL_PACK_CONFIG["excludes"]:
+        cmd_parts.extend(["--exclude-module", exclude])
+    
+    # 添加数据文件
+    for src, dst in MINIMAL_PACK_CONFIG["datas"]:
+        if os.path.exists(src):
+            cmd_parts.extend(["--add-data", f"{src};{dst}"])
+    
+    # 添加隐藏导入
+    for hidden in MINIMAL_PACK_CONFIG["hiddenimports"]:
+        cmd_parts.extend(["--hidden-import", hidden])
+    
+    # 添加启动文件
+    cmd_parts.append("launcher.py")
+    
+    return cmd_parts
+
+if __name__ == "__main__":
+    cmd = get_minimal_pyinstaller_command()
+    print("Minimal PyInstaller command:")
+    print(" ".join(cmd))

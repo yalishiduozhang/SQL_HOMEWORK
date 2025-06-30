@@ -59,21 +59,58 @@ pyinstaller ^
     --onedir ^
     --console ^
     --name "MovieHunter" ^
+    --clean ^
+    --noconfirm ^
+    --exclude-module "tkinter" ^
+    --exclude-module "PyQt5" ^
+    --exclude-module "PyQt6" ^
+    --exclude-module "PySide2" ^
+    --exclude-module "PySide6" ^
+    --exclude-module "matplotlib" ^
+    --exclude-module "scipy" ^
+    --exclude-module "sklearn" ^
+    --exclude-module "torch" ^
+    --exclude-module "transformers" ^
+    --exclude-module "jieba" ^
+    --exclude-module "faiss" ^
+    --exclude-module "faiss_cpu" ^
+    --exclude-module "pyarrow" ^
+    --exclude-module "numpy.distutils" ^
+    --exclude-module "numpy.f2py" ^
+    --exclude-module "pandas.plotting" ^
+    --exclude-module "pandas.tests" ^
+    --exclude-module "jupyter" ^
+    --exclude-module "notebook" ^
+    --exclude-module "IPython" ^
+    --exclude-module "pytest" ^
+    --exclude-module "unittest" ^
+    --exclude-module "sqlite3" ^
+    --exclude-module "zmq" ^
+    --exclude-module "pyzmq" ^
+    --exclude-module "grpc" ^
+    --exclude-module "opentelemetry" ^
+    --exclude-module "lxml" ^
     --add-data "app.py;." ^
     --add-data "launcher.py;." ^
     --add-data "init_db.py;." ^
     --add-data "templates;templates" ^
-    --add-data "static;static" ^
-    --add-data "data;data" ^
+    --add-data "static/css;static/css" ^
+    --add-data "static/js;static/js" ^
+    --add-data "static/images/logo.ico;static/images" ^
+    --add-data "static/images/logo.png;static/images" ^
+    --add-data "static/images/default-poster.jpg;static/images" ^
+    --add-data "data/movies.csv;data" ^
+    --add-data "data/ratings.csv;data" ^
+    --add-data "data/links.csv;data" ^
     --add-data "schema.sql;." ^
     --add-data "requirements.txt;." ^
     --hidden-import "mysql.connector" ^
     --hidden-import "mysql.connector.pooling" ^
-    --hidden-import "PIL" ^
-    --hidden-import "PIL.Image" ^
     --hidden-import "flask" ^
-    --hidden-import "numpy" ^
-    --hidden-import "pandas" ^
+    --hidden-import "werkzeug.serving" ^
+    --hidden-import "PIL.Image" ^
+    --hidden-import "numpy.core" ^
+    --hidden-import "pandas.core" ^
     --hidden-import "hashlib" ^
     --hidden-import "secrets" ^
     --hidden-import "datetime" ^
@@ -82,7 +119,6 @@ pyinstaller ^
     --hidden-import "collections" ^
     --hidden-import "getpass" ^
     --hidden-import "os" ^
-    --noconfirm ^
     launcher.py
 
 if %errorlevel% neq 0 (

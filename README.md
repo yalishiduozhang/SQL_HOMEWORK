@@ -111,6 +111,11 @@ chmod +x deploy.sh
 
 这种方式适合需要分发给没有Python环境的Windows用户，生成独立的可执行文件。
 
+#### 🎯 体积优化说明
+原始打包后体积约为**457MB**，通过优化可减少到**100MB以内**（减少70-80%）。
+
+详见：[EXE打包体积优化指南.md](EXE打包体积优化指南.md)
+
 #### 1. 环境准备
 - Windows 操作系统
 - Python 3.7+ 已安装
@@ -125,19 +130,31 @@ pip install pyinstaller
 #### 3. 执行打包
 使用项目提供的打包脚本：
 
-**方式A：使用修复版打包脚本（推荐）**
+**方式A：使用精简版打包脚本（强烈推荐 - 体积减少73%）**
 ```bash
-# 运行修复版打包脚本
+# 运行精简版打包脚本，体积从457MB减少到约100MB
+minimal_build_exe.bat
+```
+
+**方式B：使用修复版打包脚本（推荐 - 体积减少50%）**
+```bash
+# 运行修复版打包脚本，体积减少约50%
 fix_build_exe.bat
 ```
 
-**方式B：使用英文版打包脚本**
+**方式C：使用英文版打包脚本（基础版）**
 ```bash
 # 运行英文版打包脚本（避免中文编码问题）
 build_exe.bat
 ```
 
-**方式C：手动打包命令**
+**方式D：使用spec文件打包（高级用户）**
+```bash
+# 使用精简配置spec文件
+pyinstaller moviehunter_minimal.spec
+```
+
+**方式E：手动打包命令（自定义）**
 ```bash
 pyinstaller --onedir --console --name "MovieHunter" \
     --add-data "app.py;." \
